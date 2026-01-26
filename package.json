@@ -1,0 +1,24 @@
+{
+  "name": "daily-rewards",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bonus points tracker for children",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "rewards",
+    "kids",
+    "tracker",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
