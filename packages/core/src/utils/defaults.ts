@@ -1,9 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { EventType } from '../models/event-type';
 
-/**
- * Default event types for rewards (positive points)
- */
 export const DEFAULT_REWARD_TYPES: Omit<EventType, 'id'>[] = [
   {
     name: 'Посещение школы',
@@ -55,9 +52,6 @@ export const DEFAULT_REWARD_TYPES: Omit<EventType, 'id'>[] = [
   },
 ];
 
-/**
- * Default event types for deductions (negative points)
- */
 export const DEFAULT_DEDUCTION_TYPES: Omit<EventType, 'id'>[] = [
   {
     name: 'Вычет',
@@ -77,9 +71,6 @@ export const DEFAULT_DEDUCTION_TYPES: Omit<EventType, 'id'>[] = [
   },
 ];
 
-/**
- * Get all default event types with generated UUIDs
- */
 export function getDefaultEventTypes(): EventType[] {
   return [...DEFAULT_REWARD_TYPES, ...DEFAULT_DEDUCTION_TYPES].map((type) => ({
     ...type,

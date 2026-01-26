@@ -1,161 +1,176 @@
-# Daily Rewards - План задач
+# Daily Rewards - Task Plan
 
-## Архитектурные решения
+## Architecture Decisions
 
-### Почему выбран этот стек
+### Tech Stack Rationale
 
-| Технология | Причина выбора |
-|------------|----------------|
-| **React + TypeScript** | Единая кодовая база для web и mobile (через React Native) |
-| **Vite** | Быстрая сборка, отличная поддержка TypeScript и PWA |
-| **Zustand** | Простой state management, работает в React и React Native |
-| **Dexie.js** | Удобная обёртка над IndexedDB, поддержка offline |
-| **Tailwind + shadcn/ui** | Быстрая разработка UI, хорошая кастомизация |
-| **date-fns** | Лёгкая библиотека для работы с датами |
-| **Monorepo (pnpm workspaces)** | Переиспользование кода между web и mobile |
+| Technology | Reason |
+|------------|--------|
+| **React + TypeScript** | Single codebase for web and mobile (via React Native) |
+| **Vite** | Fast builds, excellent TypeScript and PWA support |
+| **Zustand** | Simple state management, works in React and React Native |
+| **Supabase** | PostgreSQL + Auth + Realtime, generous free tier |
+| **Tailwind + shadcn/ui** | Rapid UI development, good customization |
+| **date-fns** | Lightweight date library |
+| **Monorepo (pnpm workspaces)** | Code reuse between web and mobile |
 
-### Паттерны архитектуры
+### Architecture Patterns
 
-1. **Feature-based structure** - код организован по фичам, не по типам файлов
-2. **Offline-first** - данные сначала сохраняются локально, потом синхронизируются
-3. **Optimistic UI** - интерфейс обновляется мгновенно, ошибки обрабатываются отдельно
-
----
-
-## Фаза 1: MVP Web (4-6 недель)
-
-### Milestone 1: Инфраструктура
-- [ ] Настройка monorepo (pnpm workspaces)
-- [ ] Создание web приложения (Vite + React + TypeScript)
-- [ ] Настройка Tailwind CSS
-- [ ] Установка и настройка shadcn/ui
-- [ ] Настройка ESLint + Prettier
-- [ ] Настройка Dexie.js (IndexedDB)
-
-### Milestone 2: Core пакет
-- [ ] Типы данных (Child, EventType, Event)
-- [ ] Сервис работы с детьми (ChildService)
-- [ ] Сервис типов событий (EventTypeService)
-- [ ] Сервис событий/транзакций (EventService)
-- [ ] Сидинг дефолтных типов событий
-
-### Milestone 3: State Management
-- [ ] Zustand store для текущего ребёнка
-- [ ] Zustand store для выбранной даты
-- [ ] Zustand store для событий дня
-- [ ] Хуки для работы с данными (useChildren, useEvents, etc.)
-
-### Milestone 4: UI - Главный экран
-- [ ] Layout с header (селектор ребёнка + баланс)
-- [ ] Компонент навигации по датам
-- [ ] Список событий дня
-- [ ] Карточка события
-- [ ] FAB кнопка "+"
-- [ ] Свайп навигация между днями
-
-### Milestone 5: UI - Добавление события
-- [ ] Bottom sheet / Modal для добавления
-- [ ] Селектор типа события
-- [ ] Поле ввода баллов
-- [ ] Поле примечания
-- [ ] Валидация и сохранение
-
-### Milestone 6: UI - Календарь
-- [ ] Календарный вид (месяц)
-- [ ] Календарный вид (неделя)
-- [ ] Индикаторы событий на днях
-- [ ] Навигация по месяцам/неделям
-- [ ] Переход к конкретному дню
-
-### Milestone 7: UI - Настройки
-- [ ] Страница настроек
-- [ ] CRUD для детей
-- [ ] CRUD для типов событий
-- [ ] Переключение темы
-
-### Milestone 8: PWA и полировка
-- [ ] Настройка PWA (manifest, service worker)
-- [ ] Иконки и splash screens
-- [ ] Анимации и переходы
-- [ ] Тестирование offline режима
-- [ ] Респонсивность на разных устройствах
+1. **Feature-based structure** - code organized by features, not file types
+2. **Role-based access** - admin (full access) vs child (read-only)
+3. **Realtime sync** - Supabase Realtime for instant updates across devices
 
 ---
 
-## Фаза 2: Backend + Sync
+## Phase 1: MVP Web
 
-### Milestone 9: Supabase
-- [ ] Создание проекта Supabase
-- [ ] Миграции базы данных
-- [ ] Row Level Security (RLS)
-- [ ] API для синхронизации
+### Milestone 1: Infrastructure
+- [x] Monorepo setup (pnpm workspaces)
+- [x] Web app creation (Vite + React + TypeScript)
+- [x] Tailwind CSS setup
+- [ ] shadcn/ui components installation
+- [ ] ESLint + Prettier setup
 
-### Milestone 10: Авторизация
-- [ ] Регистрация / вход
-- [ ] Привязка данных к пользователю
-- [ ] Восстановление пароля
+### Milestone 2: Backend (Supabase)
+- [x] Database schema design
+- [x] SQL migrations with RLS policies
+- [x] TypeScript types for database
+- [ ] Create Supabase project
+- [ ] Apply migrations
+- [ ] Seed default event types function
 
-### Milestone 11: Синхронизация
-- [ ] Логика слияния данных
-- [ ] Обработка конфликтов
-- [ ] Индикатор синхронизации
+### Milestone 3: Core Package
+- [x] Profile model (admin/child roles)
+- [x] EventType model
+- [x] Event model
+- [x] Default event types
+- [x] i18n (ru/en)
+
+### Milestone 4: Authentication
+- [x] Supabase client setup
+- [x] Auth store (Zustand)
+- [x] Login page (email for admin, login for child)
+- [x] Protected routes
+- [ ] Password reset flow
+
+### Milestone 5: Main Screen
+- [x] Layout with bottom navigation
+- [x] Header (child selector + balance)
+- [x] Date navigation component
+- [x] Events list for selected day
+- [x] Event card component
+- [x] FAB "+" button (admin only)
+- [ ] Add event modal/bottom sheet
+- [ ] Swipe navigation between days
+
+### Milestone 6: Calendar
+- [x] Month view (grid)
+- [ ] Week view (rows)
+- [ ] Event indicators on days
+- [x] Month navigation
+- [x] Day selection → navigate to home
+
+### Milestone 7: Settings (Admin)
+- [x] Settings page layout
+- [x] Children list
+- [x] Add child form
+- [ ] Edit child
+- [ ] Delete child (with confirmation)
+- [ ] Event types management
+- [ ] Theme toggle (light/dark)
+
+### Milestone 8: PWA
+- [x] PWA manifest config
+- [ ] App icons (192x192, 512x512)
+- [ ] Apple touch icon
+- [ ] Service worker for offline
+- [ ] Install prompt
 
 ---
 
-## Фаза 3: Mobile
+## Phase 2: Polish & Features
+
+### Milestone 9: Event Management
+- [ ] Add event modal with type selector
+- [ ] Custom event (manual name + points)
+- [ ] Edit event
+- [ ] Delete event
+- [ ] Event type quick-add buttons
+
+### Milestone 10: UX Improvements
+- [ ] Swipe gestures for day navigation
+- [ ] Pull-to-refresh
+- [ ] Loading skeletons
+- [ ] Toast notifications
+- [ ] Empty states
+
+### Milestone 11: Statistics
+- [ ] Weekly/monthly summary
+- [ ] Balance history chart
+- [ ] Top activities
+
+---
+
+## Phase 3: Mobile
 
 ### Milestone 12: React Native
-- [ ] Настройка Expo проекта
-- [ ] Переиспользование core пакета
-- [ ] Адаптация UI под mobile
-- [ ] Сборка Android APK
-- [ ] Публикация в Google Play
+- [ ] Expo project setup
+- [ ] Reuse core package
+- [ ] Adapt UI for mobile
+- [ ] Android APK build
+- [ ] Google Play publication
 
 ---
 
-## Текущие задачи (Sprint 1)
+## Current Sprint
 
-### Сегодня
-1. [x] Инициализация git репозитория
-2. [x] Создание spec.md
-3. [x] Создание tasks.md
-4. [ ] Настройка monorepo
-5. [ ] Создание базовой структуры web приложения
-6. [ ] Настройка TypeScript и линтеров
+### Completed
+- [x] Git repository initialized
+- [x] spec.md created
+- [x] tasks.md created
+- [x] Monorepo configured (pnpm workspaces)
+- [x] Web app structure created
+- [x] Supabase schema and migrations
+- [x] Core models (Profile, EventType, Event)
+- [x] Auth store and login page
+- [x] Main screen (HomePage)
+- [x] Calendar page (month view)
+- [x] Settings page (children management)
 
-### Следующие шаги
-- Настройка Dexie.js и создание схемы БД
-- Создание базовых компонентов UI
-- Реализация главного экрана
+### Next Up
+- [ ] Create Supabase project and apply migrations
+- [ ] Add event modal implementation
+- [ ] Seed default event types on admin signup
+- [ ] shadcn/ui button, input, dialog components
 
 ---
 
-## Полезные команды
+## Commands
 
 ```bash
-# Установка зависимостей
+# Install dependencies
 pnpm install
 
-# Запуск web приложения
-pnpm --filter web dev
+# Run web app
+pnpm dev
 
-# Сборка
-pnpm --filter web build
+# Build
+pnpm build
 
-# Линтинг
+# Lint
 pnpm lint
 ```
 
 ---
 
-## Ссылки на документацию
+## Documentation Links
 
 - [React](https://react.dev)
 - [Vite](https://vitejs.dev)
 - [Tailwind CSS](https://tailwindcss.com)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Zustand](https://github.com/pmndrs/zustand)
-- [Dexie.js](https://dexie.org)
+- [Supabase](https://supabase.com/docs)
 - [date-fns](https://date-fns.org)
 - [React Native](https://reactnative.dev)
 - [Expo](https://expo.dev)

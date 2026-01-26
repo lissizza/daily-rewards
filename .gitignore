@@ -47,3 +47,20 @@ android/app/build/
 # Misc
 *.local
 .turbo/
+
+# LLM / AI development tools
+.claude/
+.cursor/
+.aider/
+.continue/
+.copilot/
+.codeium/
+.tabnine/
+.supermaven/
+CLAUDE.md
+CLAUDE.local.md
+.cursorrules
+.aider*
+*.prompt
+*.prompts
+prompts/
