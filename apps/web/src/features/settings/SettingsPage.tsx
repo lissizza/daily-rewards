@@ -39,6 +39,9 @@ export function SettingsPage() {
   const [draggedType, setDraggedType] = useState<EventType | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+  // Icon picker state
+  const [editingIconTypeId, setEditingIconTypeId] = useState<string | null>(null);
+
   const clearError = useCallback(() => setError(null), []);
 
   // Split event types by category
@@ -157,6 +160,39 @@ export function SettingsPage() {
       setEventTypes((prev) =>
         prev.map((t) => (t.id === typeId ? { ...t, default_points: newPoints } : t))
       );
+    },
+    []
+  );
+
+  // Available icons for activities
+  const availableIcons = [
+    // Income / Rewards
+    '⭐', '🌟', '✨', '💫', '🏆', '🥇', '🎖️', '🏅',
+    '✅', '👍', '💪', '🎯', '🚀', '📚', '📖', '✏️',
+    '🎨', '🎵', '🎹', '⚽', '🏀', '🎾', '🏊', '🚴',
+    '🧹', '🍽️', '🛏️', '🐕', '🌱', '💡', '🎁', '❤️',
+    // Expenses / Deductions
+    '💸', '💰', '🛒', '🛍️', '🎮', '📱', '💻', '🍬',
+    '🍭', '🍫', '🍿', '🎬', '📺', '🎪', '🎢', '🧸',
+    '⚠️', '❌', '🚫', '😤', '😢', '🤕', '💔', '⏰',
+  ];
+
+  const handleUpdateEventTypeIcon = useCallback(
+    async (typeId: string, newIcon: string) => {
+      const { error } = await supabase
+        .from('event_types')
+        .update({ icon: newIcon })
+        .eq('id', typeId);
+
+      if (error) {
+        setError(extractErrorMessage(error));
+        return;
+      }
+
+      setEventTypes((prev) =>
+        prev.map((t) => (t.id === typeId ? { ...t, icon: newIcon } : t))
+      );
+      setEditingIconTypeId(null);
     },
     []
   );
@@ -359,21 +395,28 @@ export function SettingsPage() {
   const renderEventTypeRow = (type: EventType) => (
     <div
       key={type.id}
-      draggable
+      draggable={editingIconTypeId !== type.id}
       onDragStart={(e) => handleDragStart(e, type)}
       onDragOver={(e) => handleDragOver(e, type)}
       onDragLeave={handleDragLeave}
       onDrop={(e) => handleDrop(e, type)}
       onDragEnd={handleDragEnd}
       className={cn(
-        'flex items-center justify-between gap-2 rounded-lg border bg-card p-3 cursor-grab active:cursor-grabbing',
+        'relative flex items-center justify-between gap-2 rounded-lg border bg-card p-3',
+        editingIconTypeId !== type.id && 'cursor-grab active:cursor-grabbing',
         draggedType?.id === type.id && 'opacity-50',
         dragOverId === type.id && 'border-primary border-2'
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="shrink-0 text-lg">{type.icon}</span>
+        <button
+          onClick={() => setEditingIconTypeId(editingIconTypeId === type.id ? null : type.id)}
+          className="shrink-0 text-lg hover:scale-125 transition-transform rounded p-1 hover:bg-accent"
+          title="Изменить иконку"
+        >
+          {type.icon}
+        </button>
         <EditableText
           value={type.name}
           onSave={(newName) => handleUpdateEventTypeName(type.id, newName)}
@@ -393,6 +436,32 @@ export function SettingsPage() {
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Icon picker dropdown */}
+      {editingIconTypeId === type.id && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setEditingIconTypeId(null)}
+          />
+          <div className="absolute left-8 top-full z-20 mt-1 w-64 rounded-lg border bg-background p-2 shadow-lg">
+            <div className="grid grid-cols-8 gap-1">
+              {availableIcons.map((icon) => (
+                <button
+                  key={icon}
+                  onClick={() => handleUpdateEventTypeIcon(type.id, icon)}
+                  className={cn(
+                    'rounded p-1.5 text-lg hover:bg-accent transition-colors',
+                    type.icon === icon && 'bg-primary/20 ring-2 ring-primary'
+                  )}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 
