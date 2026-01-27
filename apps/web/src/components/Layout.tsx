@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 export function Layout() {
   const { profile } = useAuthStore();
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
 
   return (
     <div className="flex min-h-screen flex-col">

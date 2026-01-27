@@ -45,21 +45,18 @@ export function CalendarPage() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
 
   // Load event types
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || !profile.family_id) return;
 
     const loadEventTypes = async () => {
-      const adminId = isAdmin ? profile.id : profile.parent_id;
-      if (!adminId) return;
-
       const { data } = await supabase
         .from('event_types')
         .select('*')
-        .eq('admin_id', adminId)
+        .eq('family_id', profile.family_id)
         .order('sort_order');
 
       if (data) {
@@ -68,7 +65,7 @@ export function CalendarPage() {
     };
 
     loadEventTypes();
-  }, [profile, isAdmin]);
+  }, [profile]);
 
   // Load week events when in week view
   useEffect(() => {
