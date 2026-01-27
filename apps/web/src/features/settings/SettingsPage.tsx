@@ -27,6 +27,13 @@ export function SettingsPage() {
   const [editChildName, setEditChildName] = useState('');
   const [editChildLogin, setEditChildLogin] = useState('');
 
+  // Add event type state
+  const [showAddIncome, setShowAddIncome] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [newEventName, setNewEventName] = useState('');
+  const [newEventPoints, setNewEventPoints] = useState('');
+  const [newEventIcon, setNewEventIcon] = useState('');
+
   const clearError = useCallback(() => setError(null), []);
 
   // Split event types by category
@@ -165,6 +172,39 @@ export function SettingsPage() {
       loadEventTypes();
     } catch (err) {
       console.error('Error deleting event type:', err);
+      setError(extractErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddEventType = async (isDeduction: boolean) => {
+    if (!profile || !newEventName.trim()) return;
+    setLoading(true);
+
+    try {
+      const points = parseInt(newEventPoints, 10) || 1;
+      const maxSortOrder = Math.max(0, ...eventTypes.map((t) => t.sort_order));
+
+      const { error } = await supabase.from('event_types').insert({
+        admin_id: profile.id,
+        name: newEventName.trim(),
+        default_points: points,
+        is_deduction: isDeduction,
+        icon: newEventIcon || (isDeduction ? '💸' : '⭐'),
+        sort_order: maxSortOrder + 1,
+      });
+
+      if (error) throw error;
+
+      setNewEventName('');
+      setNewEventPoints('');
+      setNewEventIcon('');
+      setShowAddIncome(false);
+      setShowAddExpense(false);
+      loadEventTypes();
+    } catch (err) {
+      console.error('Error adding event type:', err);
       setError(extractErrorMessage(err));
     } finally {
       setLoading(false);
@@ -363,6 +403,72 @@ export function SettingsPage() {
         <div className="space-y-2">
           {incomeTypes.map(renderEventTypeRow)}
         </div>
+
+        {showAddIncome ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAddEventType(false);
+            }}
+            className="mt-3 space-y-3 rounded-lg border p-3"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newEventIcon}
+                onChange={(e) => setNewEventIcon(e.target.value)}
+                placeholder="⭐"
+                className="w-12 rounded-md border border-input bg-background px-2 py-2 text-center"
+                maxLength={2}
+              />
+              <input
+                type="text"
+                value={newEventName}
+                onChange={(e) => setNewEventName(e.target.value)}
+                placeholder="Название"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2"
+                required
+              />
+              <input
+                type="number"
+                value={newEventPoints}
+                onChange={(e) => setNewEventPoints(e.target.value)}
+                placeholder="1"
+                className="w-16 rounded-md border border-input bg-background px-2 py-2 text-center"
+                min={1}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddIncome(false);
+                  setNewEventName('');
+                  setNewEventPoints('');
+                  setNewEventIcon('');
+                }}
+                className="flex-1 rounded-md border px-4 py-2"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !newEventName.trim()}
+                className="flex-1 rounded-md bg-green-600 px-4 py-2 text-white disabled:opacity-50"
+              >
+                {loading ? 'Добавление...' : 'Добавить'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setShowAddIncome(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-green-500 p-3 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить доход
+          </button>
+        )}
       </section>
 
       {/* Expense types section */}
@@ -371,6 +477,72 @@ export function SettingsPage() {
         <div className="space-y-2">
           {expenseTypes.map(renderEventTypeRow)}
         </div>
+
+        {showAddExpense ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAddEventType(true);
+            }}
+            className="mt-3 space-y-3 rounded-lg border p-3"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newEventIcon}
+                onChange={(e) => setNewEventIcon(e.target.value)}
+                placeholder="💸"
+                className="w-12 rounded-md border border-input bg-background px-2 py-2 text-center"
+                maxLength={2}
+              />
+              <input
+                type="text"
+                value={newEventName}
+                onChange={(e) => setNewEventName(e.target.value)}
+                placeholder="Название"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2"
+                required
+              />
+              <input
+                type="number"
+                value={newEventPoints}
+                onChange={(e) => setNewEventPoints(e.target.value)}
+                placeholder="1"
+                className="w-16 rounded-md border border-input bg-background px-2 py-2 text-center"
+                min={1}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddExpense(false);
+                  setNewEventName('');
+                  setNewEventPoints('');
+                  setNewEventIcon('');
+                }}
+                className="flex-1 rounded-md border px-4 py-2"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !newEventName.trim()}
+                className="flex-1 rounded-md bg-destructive px-4 py-2 text-destructive-foreground disabled:opacity-50"
+              >
+                {loading ? 'Добавление...' : 'Добавить'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setShowAddExpense(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-destructive p-3 text-destructive hover:bg-red-50 dark:hover:bg-red-950"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить расход
+          </button>
+        )}
       </section>
 
       {/* Sign out */}
