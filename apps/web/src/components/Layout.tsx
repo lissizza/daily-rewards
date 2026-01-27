@@ -1,11 +1,11 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, Calendar, Sparkles, Users } from 'lucide-react';
+import { Home, Calendar, Sparkles, Users, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { useTranslation } from '@/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
 export function Layout() {
-  const { profile } = useAuthStore();
+  const { profile, signOut } = useAuthStore();
   const t = useTranslation();
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
 
@@ -45,7 +45,7 @@ export function Layout() {
             <span>{t.nav.calendar}</span>
           </NavLink>
 
-          {isAdmin && (
+          {isAdmin ? (
             <>
               <NavLink
                 to="/activities"
@@ -73,6 +73,14 @@ export function Layout() {
                 <span>{t.nav.family}</span>
               </NavLink>
             </>
+          ) : (
+            <button
+              onClick={() => signOut()}
+              className="flex flex-col items-center gap-1 px-3 py-2 text-xs text-muted-foreground"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>{t.nav.signOut}</span>
+            </button>
           )}
         </div>
       </nav>

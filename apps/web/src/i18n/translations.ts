@@ -6,6 +6,7 @@ export const translations = {
       calendar: 'Календарь',
       activities: 'Активности',
       family: 'Семья',
+      signOut: 'Выход',
     },
     // Home page
     home: {
@@ -87,6 +88,7 @@ export const translations = {
       calendar: 'Calendar',
       activities: 'Activities',
       family: 'Family',
+      signOut: 'Sign Out',
     },
     // Home page
     home: {
