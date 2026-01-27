@@ -59,8 +59,12 @@ export function HomePage() {
 
     if (data) {
       setChildren(data);
-      if (data.length > 0 && !selectedChildId) {
-        setSelectedChildId(data[0].id);
+      // Only set first child if no child is selected OR selected child doesn't exist
+      if (data.length > 0) {
+        const savedChildExists = selectedChildId && data.some((c) => c.id === selectedChildId);
+        if (!savedChildExists) {
+          setSelectedChildId(data[0].id);
+        }
       }
     }
     setLoading(false);
