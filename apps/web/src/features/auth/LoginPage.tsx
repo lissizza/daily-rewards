@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
+import { validatePassword, PASSWORD_MIN_LENGTH } from '@/lib/validation';
 
 export function LoginPage() {
   const [emailOrLogin, setEmailOrLogin] = useState('');
@@ -16,6 +17,16 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate password on signup
+    if (isSignUp) {
+      const validation = validatePassword(password);
+      if (!validation.valid) {
+        setError(validation.error || 'Invalid password');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -84,7 +95,7 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
               required
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
             />
           </div>
 

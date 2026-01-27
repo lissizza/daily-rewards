@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
 import { useLanguageStore, type Language } from '@/stores/language';
 import { useTranslation } from '@/i18n/useTranslation';
+import { validatePassword, validatePasswordRu, PASSWORD_MIN_LENGTH } from '@/lib/validation';
 import type { Profile } from '@/types/database';
 
 export function FamilyPage() {
@@ -83,6 +84,16 @@ export function FamilyPage() {
   const handleAddChild = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !profile.family_id) return;
+
+    // Validate password
+    const validation = language === 'ru'
+      ? validatePasswordRu(newChildPassword)
+      : validatePassword(newChildPassword);
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid password');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -130,9 +141,19 @@ export function FamilyPage() {
     e.preventDefault();
     if (!profile || !profile.family_id) return;
     if (profile.role !== 'owner') {
-      setError('Только владелец семьи может добавлять второго родителя');
+      setError(language === 'ru' ? 'Только владелец семьи может добавлять второго родителя' : 'Only the family owner can add a co-parent');
       return;
     }
+
+    // Validate password
+    const validation = language === 'ru'
+      ? validatePasswordRu(coParentPassword)
+      : validatePassword(coParentPassword);
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid password');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -346,7 +367,7 @@ export function FamilyPage() {
                 onChange={(e) => setNewChildPassword(e.target.value)}
                 className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
                 required
-                minLength={6}
+                minLength={PASSWORD_MIN_LENGTH}
               />
             </div>
             <div className="flex gap-2">
@@ -452,7 +473,7 @@ export function FamilyPage() {
                     onChange={(e) => setCoParentPassword(e.target.value)}
                     className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
                     required
-                    minLength={6}
+                    minLength={PASSWORD_MIN_LENGTH}
                   />
                 </div>
                 <div className="flex gap-2">
