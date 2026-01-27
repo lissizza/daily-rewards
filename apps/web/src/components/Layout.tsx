@@ -10,7 +10,9 @@ export function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1 overflow-auto pb-16">
-        <Outlet />
+        <div className="mx-auto max-w-md">
+          <Outlet />
+        </div>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 border-t bg-background">

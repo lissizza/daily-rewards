@@ -94,9 +94,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({ user: session.user, profile, loading: false });
 
-        // Seed default event types for new admin users
-        if (event === 'SIGNED_IN' && profile?.role === 'admin') {
-          // Check if this admin already has event types (prevents duplicate seeding)
+        // Seed default event types for new admin users only
+        // Conditions:
+        // 1. Must be a SIGNED_IN event (new login, not token refresh)
+        // 2. Must be an admin role (not a child)
+        // 3. Must not have a parent_id (children have parent_id, admins don't)
+        // 4. Must not already have event types (prevents duplicate seeding)
+        const isNewAdmin = event === 'SIGNED_IN'
+          && profile?.role === 'admin'
+          && !profile?.parent_id;
+
+        if (isNewAdmin) {
           const alreadyHasEventTypes = await hasEventTypes(session.user.id);
           if (!alreadyHasEventTypes) {
             console.log('[auth] New admin detected, seeding default event types...');

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
+import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
 import type { EventType } from '@/types/database';
 
 interface AddEventModalProps {
@@ -27,6 +28,9 @@ export function AddEventModal({
   const [points, setPoints] = useState<number>(0);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const clearError = useCallback(() => setError(null), []);
 
   const rewards = eventTypes.filter((t) => !t.is_deduction);
   const deductions = eventTypes.filter((t) => t.is_deduction);
@@ -45,6 +49,7 @@ export function AddEventModal({
       setSelectedTypeId(null);
       setPoints(0);
       setNote('');
+      setError(null);
     }
   }, [isOpen]);
 
@@ -68,9 +73,9 @@ export function AddEventModal({
 
       onEventAdded();
       onClose();
-    } catch (error) {
-      console.error('Error adding event:', error);
-      alert('Ошибка при добавлении события');
+    } catch (err) {
+      console.error('Error adding event:', err);
+      setError(extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -80,6 +85,7 @@ export function AddEventModal({
 
   return (
     <>
+      <ErrorToast message={error} onClose={clearError} />
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/50"

@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import { supabase } from '@/lib/supabase';
-import { formatDate, formatPoints, cn } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import { AddEventModal } from './AddEventModal';
+import { EditablePoints } from '@/components/EditablePoints';
 import type { Profile, Event, EventType } from '@/types/database';
 
 export function HomePage() {
@@ -42,10 +43,11 @@ export function HomePage() {
   }, [currentChildId, selectedDate]);
 
   const loadChildren = async () => {
+    if (!profile) return;
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('parent_id', profile!.id)
+      .eq('parent_id', profile.id)
       .order('name');
 
     if (data) {
@@ -58,7 +60,8 @@ export function HomePage() {
   };
 
   const loadEventTypes = async () => {
-    const adminId = isAdmin ? profile!.id : profile!.parent_id;
+    if (!profile) return;
+    const adminId = isAdmin ? profile.id : profile.parent_id;
     if (!adminId) return;
 
     const { data } = await supabase
@@ -112,6 +115,33 @@ export function HomePage() {
       loadBalance(currentChildId);
     }
   };
+
+  // Inline edit handler for event points
+  const handleUpdateEventPoints = useCallback(
+    async (eventId: string, newPoints: number) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ points: newPoints })
+        .eq('id', eventId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state immediately
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === eventId ? { ...e, points: newPoints } : e
+        )
+      );
+
+      // Refresh the balance after points update
+      if (currentChildId) {
+        loadBalance(currentChildId);
+      }
+    },
+    [currentChildId]
+  );
 
   const currentChild = children.find((c) => c.id === selectedChildId);
 
@@ -216,14 +246,25 @@ export function HomePage() {
                     <span>{getEventTypeIcon(event)}</span>
                     <span className="font-medium">{getEventTypeName(event)}</span>
                   </div>
-                  <span
-                    className={cn(
-                      'font-semibold',
-                      event.points >= 0 ? 'text-green-600' : 'text-destructive'
-                    )}
-                  >
-                    {formatPoints(event.points)}
-                  </span>
+                  {isAdmin ? (
+                    <EditablePoints
+                      value={event.points}
+                      isDeduction={event.points < 0}
+                      onSave={(newValue) =>
+                        handleUpdateEventPoints(event.id, newValue)
+                      }
+                    />
+                  ) : (
+                    <span
+                      className={cn(
+                        'font-semibold',
+                        event.points >= 0 ? 'text-green-600' : 'text-destructive'
+                      )}
+                    >
+                      {event.points >= 0 ? '+' : ''}
+                      {event.points}
+                    </span>
+                  )}
                 </div>
                 {event.note && (
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -238,12 +279,14 @@ export function HomePage() {
 
       {/* Add button (admin only) */}
       {isAdmin && currentChildId && (
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        <div className="fixed bottom-20 left-0 right-0 mx-auto max-w-md pointer-events-none">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="pointer-events-auto absolute bottom-0 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        </div>
       )}
 
       {/* Add Event Modal */}

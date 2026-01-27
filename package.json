@@ -7,7 +7,9 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "lint": "pnpm -r lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "pnpm -r test:run",
+    "test:watch": "pnpm -r test"
   },
   "keywords": [
     "rewards",
