@@ -61,11 +61,12 @@ export function SettingsPage() {
   }, [profile]);
 
   const loadChildren = async () => {
-    if (!profile) return;
+    if (!profile || !profile.family_id) return;
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('parent_id', profile.id)
+      .eq('family_id', profile.family_id)
+      .eq('role', 'child')
       .order('name');
 
     if (data) {
@@ -74,11 +75,11 @@ export function SettingsPage() {
   };
 
   const loadEventTypes = async () => {
-    if (!profile) return;
+    if (!profile || !profile.family_id) return;
     const { data } = await supabase
       .from('event_types')
       .select('*')
-      .eq('admin_id', profile.id)
+      .eq('family_id', profile.family_id)
       .order('sort_order');
 
     if (data) {
@@ -88,7 +89,7 @@ export function SettingsPage() {
 
   const handleAddChild = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !profile.family_id) return;
     setLoading(true);
 
     try {
@@ -108,7 +109,8 @@ export function SettingsPage() {
           login: newChildLogin,
           name: newChildName,
           role: 'child',
-          parent_id: profile.id,
+          family_id: profile.family_id,
+          parent_id: profile.id, // Keep for backwards compatibility
         })
         .eq('id', authData.user.id);
 
@@ -133,7 +135,11 @@ export function SettingsPage() {
 
   const handleAddCoParent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !profile.family_id) return;
+    if (profile.role !== 'owner') {
+      setError('Только владелец семьи может добавлять второго родителя');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -146,47 +152,22 @@ export function SettingsPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Failed to create user');
 
-      // Update their profile to be an admin linked to same children
+      // Update their profile to be an admin in the same family
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           name: coParentName,
           role: 'admin',
-          // No parent_id for admins
+          family_id: profile.family_id,
         })
         .eq('id', authData.user.id);
 
       if (profileError) throw profileError;
 
-      // Copy event types from current admin to new admin
-      const { data: myEventTypes } = await supabase
-        .from('event_types')
-        .select('*')
-        .eq('admin_id', profile.id);
-
-      if (myEventTypes && myEventTypes.length > 0) {
-        const copiedEventTypes = myEventTypes.map((et) => ({
-          admin_id: authData.user!.id,
-          name: et.name,
-          default_points: et.default_points,
-          is_deduction: et.is_deduction,
-          icon: et.icon,
-          sort_order: et.sort_order,
-        }));
-
-        await supabase.from('event_types').insert(copiedEventTypes);
-      }
-
-      // Re-link all children to also have the new admin as parent
-      // Note: Current DB schema has single parent_id, so we'll need to update children
-      // to point to the new admin OR create a separate linking table
-      // For simplicity, we'll inform the user that children need to be shared
-
       setCoParentEmail('');
       setCoParentName('');
       setCoParentPassword('');
       setShowAddCoParent(false);
-      setError('Второй родитель создан! Для доступа к детям им нужно будет создать их заново или изменить parent_id вручную.');
     } catch (err) {
       console.error('Error adding co-parent:', err);
       setError(extractErrorMessage(err));
@@ -290,7 +271,7 @@ export function SettingsPage() {
   };
 
   const handleAddEventType = async (isDeduction: boolean) => {
-    if (!profile || !newEventName.trim()) return;
+    if (!profile || !profile.family_id || !newEventName.trim()) return;
     setLoading(true);
 
     try {
@@ -298,7 +279,7 @@ export function SettingsPage() {
       const maxSortOrder = Math.max(0, ...eventTypes.map((t) => t.sort_order));
 
       const { error } = await supabase.from('event_types').insert({
-        admin_id: profile.id,
+        family_id: profile.family_id,
         name: newEventName.trim(),
         default_points: points,
         is_deduction: isDeduction,

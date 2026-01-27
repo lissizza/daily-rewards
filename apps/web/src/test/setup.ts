@@ -21,5 +21,6 @@ vi.mock('@/lib/supabase', () => ({
         select: vi.fn(),
       })),
     })),
+    rpc: vi.fn(),
   },
 }));

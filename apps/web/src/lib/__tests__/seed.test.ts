@@ -36,13 +36,13 @@ describe('seedDefaultEventTypes', () => {
   it('should map event types to correct database format', async () => {
     mockSelect.mockResolvedValue({ data: [], error: null });
 
-    await seedDefaultEventTypes('admin-456');
+    await seedDefaultEventTypes('family-456');
 
     const insertCall = mockInsert.mock.calls[0][0];
 
     // Check first item structure
     const firstItem = insertCall[0];
-    expect(firstItem).toHaveProperty('admin_id', 'admin-456');
+    expect(firstItem).toHaveProperty('family_id', 'family-456');
     expect(firstItem).toHaveProperty('name');
     expect(firstItem).toHaveProperty('default_points');
     expect(firstItem).toHaveProperty('is_deduction');
@@ -94,14 +94,14 @@ describe('seedDefaultEventTypes', () => {
     expect(result.error).toBe('Unknown error occurred');
   });
 
-  it('should set admin_id for all inserted event types', async () => {
+  it('should set family_id for all inserted event types', async () => {
     mockSelect.mockResolvedValue({ data: [], error: null });
 
-    await seedDefaultEventTypes('specific-admin-id');
+    await seedDefaultEventTypes('specific-family-id');
 
     const insertCall = mockInsert.mock.calls[0][0];
-    insertCall.forEach((item: { admin_id: string }) => {
-      expect(item.admin_id).toBe('specific-admin-id');
+    insertCall.forEach((item: { family_id: string }) => {
+      expect(item.family_id).toBe('specific-family-id');
     });
   });
 
@@ -144,21 +144,21 @@ describe('hasEventTypes', () => {
     mockFrom.mockReturnValue({ select: mockSelect });
   });
 
-  it('should return true when admin has event types', async () => {
+  it('should return true when family has event types', async () => {
     mockEq.mockResolvedValue({ count: 5, error: null });
 
-    const result = await hasEventTypes('admin-123');
+    const result = await hasEventTypes('family-123');
 
     expect(result).toBe(true);
     expect(mockFrom).toHaveBeenCalledWith('event_types');
     expect(mockSelect).toHaveBeenCalledWith('*', { count: 'exact', head: true });
-    expect(mockEq).toHaveBeenCalledWith('admin_id', 'admin-123');
+    expect(mockEq).toHaveBeenCalledWith('family_id', 'family-123');
   });
 
-  it('should return false when admin has no event types', async () => {
+  it('should return false when family has no event types', async () => {
     mockEq.mockResolvedValue({ count: 0, error: null });
 
-    const result = await hasEventTypes('admin-123');
+    const result = await hasEventTypes('family-123');
 
     expect(result).toBe(false);
   });

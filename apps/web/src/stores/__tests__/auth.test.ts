@@ -76,14 +76,8 @@ describe('Auth Store', () => {
     });
 
     it('should lookup email by login when non-email is provided', async () => {
-      const mockSelectFn = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { email: 'found@example.com' },
-          }),
-        }),
-      });
-      mockFrom.mockReturnValue({ select: mockSelectFn });
+      const mockRpc = supabase.rpc as Mock;
+      mockRpc.mockResolvedValue({ data: 'found@example.com', error: null });
       mockSignInWithPassword.mockResolvedValue({ error: null });
 
       const useAuthStore = await getAuthStore();
@@ -93,7 +87,7 @@ describe('Auth Store', () => {
 
       await useAuthStore.getState().signIn('mylogin', 'password123');
 
-      expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(mockRpc).toHaveBeenCalledWith('get_email_by_login', { p_login: 'mylogin' });
       expect(mockSignInWithPassword).toHaveBeenCalledWith({
         email: 'found@example.com',
         password: 'password123',
@@ -101,14 +95,8 @@ describe('Auth Store', () => {
     });
 
     it('should throw error when login lookup fails', async () => {
-      const mockSelectFn = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: null,
-          }),
-        }),
-      });
-      mockFrom.mockReturnValue({ select: mockSelectFn });
+      const mockRpc = supabase.rpc as Mock;
+      mockRpc.mockResolvedValue({ data: null, error: null });
 
       const useAuthStore = await getAuthStore();
       await vi.waitFor(() => {
@@ -117,7 +105,7 @@ describe('Auth Store', () => {
 
       await expect(
         useAuthStore.getState().signIn('nonexistent', 'password123')
-      ).rejects.toThrow('User not found');
+      ).rejects.toThrow('Пользователь не найден');
     });
 
     it('should throw error when signInWithPassword fails', async () => {

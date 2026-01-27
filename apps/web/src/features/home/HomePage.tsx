@@ -24,7 +24,7 @@ export function HomePage() {
   const [showIncomeDropdown, setShowIncomeDropdown] = useState(false);
   const [showExpenseDropdown, setShowExpenseDropdown] = useState(false);
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
 
   // Split event types
@@ -50,11 +50,12 @@ export function HomePage() {
   }, [currentChildId, selectedDate]);
 
   const loadChildren = async () => {
-    if (!profile) return;
+    if (!profile || !profile.family_id) return;
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('parent_id', profile.id)
+      .eq('family_id', profile.family_id)
+      .eq('role', 'child')
       .order('name');
 
     if (data) {
@@ -71,14 +72,12 @@ export function HomePage() {
   };
 
   const loadEventTypes = async () => {
-    if (!profile) return;
-    const adminId = isAdmin ? profile.id : profile.parent_id;
-    if (!adminId) return;
+    if (!profile || !profile.family_id) return;
 
     const { data } = await supabase
       .from('event_types')
       .select('*')
-      .eq('admin_id', adminId)
+      .eq('family_id', profile.family_id)
       .order('sort_order');
 
     if (data) {

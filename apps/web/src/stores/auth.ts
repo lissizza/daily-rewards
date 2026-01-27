@@ -31,18 +31,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
         if (error) throw error;
       } else {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('login', emailOrLogin)
-          .single();
+        // Use security definer function to get email by login (bypasses RLS)
+        const { data: email, error: lookupError } = await supabase
+          .rpc('get_email_by_login', { p_login: emailOrLogin });
 
-        if (!profile?.email) {
-          throw new Error('User not found');
+        if (lookupError || !email) {
+          throw new Error('Пользователь не найден');
         }
 
         const { error } = await supabase.auth.signInWithPassword({
-          email: profile.email,
+          email,
           password,
         });
         if (error) throw error;
@@ -94,21 +92,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         set({ user: session.user, profile, loading: false });
 
-        // Seed default event types for new admin users only
+        // Seed default event types for new owner users only
         // Conditions:
         // 1. Must be a SIGNED_IN event (new login, not token refresh)
-        // 2. Must be an admin role (not a child)
-        // 3. Must not have a parent_id (children have parent_id, admins don't)
-        // 4. Must not already have event types (prevents duplicate seeding)
-        const isNewAdmin = event === 'SIGNED_IN'
-          && profile?.role === 'admin'
-          && !profile?.parent_id;
+        // 2. Must be an owner role (family creator)
+        // 3. Must have a family_id
+        // 4. Family must not already have event types (prevents duplicate seeding)
+        const isNewOwner = event === 'SIGNED_IN'
+          && profile?.role === 'owner'
+          && profile?.family_id;
 
-        if (isNewAdmin) {
-          const alreadyHasEventTypes = await hasEventTypes(session.user.id);
+        if (isNewOwner) {
+          const alreadyHasEventTypes = await hasEventTypes(profile.family_id);
           if (!alreadyHasEventTypes) {
-            console.log('[auth] New admin detected, seeding default event types...');
-            const result = await seedDefaultEventTypes(session.user.id);
+            console.log('[auth] New owner detected, seeding default event types for family...');
+            const result = await seedDefaultEventTypes(profile.family_id);
             if (!result.success) {
               console.error('[auth] Failed to seed default event types:', result.error);
             }

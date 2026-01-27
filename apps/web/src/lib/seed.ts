@@ -8,13 +8,13 @@ import type { Database } from '@/types/database';
 type EventTypeInsert = Database['public']['Tables']['event_types']['Insert'];
 
 /**
- * Seeds default event types for a new admin user.
+ * Seeds default event types for a new family.
  * This includes both reward types (positive points) and deduction types (negative points).
  *
- * @param adminId - The UUID of the admin user to seed event types for
+ * @param familyId - The UUID of the family to seed event types for
  * @returns Object with success status and optional error message
  */
-export async function seedDefaultEventTypes(adminId: string): Promise<{
+export async function seedDefaultEventTypes(familyId: string): Promise<{
   success: boolean;
   error?: string;
   insertedCount?: number;
@@ -25,7 +25,7 @@ export async function seedDefaultEventTypes(adminId: string): Promise<{
 
     // Map to database insert format
     const eventTypesToInsert: EventTypeInsert[] = allDefaultTypes.map((type) => ({
-      admin_id: adminId,
+      family_id: familyId,
       name: type.name,
       default_points: type.defaultPoints,
       is_deduction: type.isDeduction,
@@ -47,7 +47,7 @@ export async function seedDefaultEventTypes(adminId: string): Promise<{
       };
     }
 
-    console.log(`[seedDefaultEventTypes] Successfully seeded ${data?.length ?? 0} event types for admin ${adminId}`);
+    console.log(`[seedDefaultEventTypes] Successfully seeded ${data?.length ?? 0} event types for family ${familyId}`);
 
     return {
       success: true,
@@ -64,18 +64,18 @@ export async function seedDefaultEventTypes(adminId: string): Promise<{
 }
 
 /**
- * Checks if an admin already has event types configured.
+ * Checks if a family already has event types configured.
  * Used to prevent duplicate seeding.
  *
- * @param adminId - The UUID of the admin user to check
+ * @param familyId - The UUID of the family to check
  * @returns Boolean indicating if event types already exist
  */
-export async function hasEventTypes(adminId: string): Promise<boolean> {
+export async function hasEventTypes(familyId: string): Promise<boolean> {
   try {
     const { count, error } = await supabase
       .from('event_types')
       .select('*', { count: 'exact', head: true })
-      .eq('admin_id', adminId);
+      .eq('family_id', familyId);
 
     if (error) {
       console.error('[hasEventTypes] Error checking event types:', error);
