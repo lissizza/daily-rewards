@@ -3,7 +3,8 @@ import { useAuthStore } from '@/stores/auth';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { HomePage } from '@/features/home/HomePage';
 import { CalendarPage } from '@/features/calendar/CalendarPage';
-import { SettingsPage } from '@/features/settings/SettingsPage';
+import { ActivitiesPage } from '@/features/activities/ActivitiesPage';
+import { FamilyPage } from '@/features/family/FamilyPage';
 import { Layout } from '@/components/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -39,7 +40,8 @@ export function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="calendar" element={<CalendarPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="activities" element={<ActivitiesPage />} />
+          <Route path="family" element={<FamilyPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

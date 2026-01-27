@@ -23,6 +23,7 @@ export function HomePage() {
   // Quick add dropdown state
   const [showIncomeDropdown, setShowIncomeDropdown] = useState(false);
   const [showExpenseDropdown, setShowExpenseDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
@@ -30,6 +31,14 @@ export function HomePage() {
   // Split event types
   const incomeTypes = eventTypes.filter((t) => !t.is_deduction);
   const expenseTypes = eventTypes.filter((t) => t.is_deduction);
+
+  // Filter types by search query
+  const filteredIncomeTypes = incomeTypes.filter((t) =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredExpenseTypes = expenseTypes.filter((t) =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     if (!profile) return;
@@ -306,7 +315,12 @@ export function HomePage() {
             {events.map((event) => (
               <div
                 key={event.id}
-                className="rounded-lg border bg-card p-3"
+                className={cn(
+                  'rounded-lg border p-3',
+                  event.points >= 0
+                    ? 'bg-green-50 dark:bg-green-950/30'
+                    : 'bg-red-50 dark:bg-red-950/30'
+                )}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -372,6 +386,7 @@ export function HomePage() {
                 onClick={() => {
                   setShowIncomeDropdown(!showIncomeDropdown);
                   setShowExpenseDropdown(false);
+                  setSearchQuery('');
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-green-500 p-3 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
               >
@@ -384,22 +399,46 @@ export function HomePage() {
                 <>
                   <div
                     className="fixed inset-0 z-10"
-                    onClick={() => setShowIncomeDropdown(false)}
+                    onClick={() => {
+                      setShowIncomeDropdown(false);
+                      setSearchQuery('');
+                    }}
                   />
-                  <div className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-64 overflow-y-auto rounded-lg border bg-background shadow-lg">
-                    {incomeTypes.map((type) => (
-                      <button
-                        key={type.id}
-                        onClick={() => handleQuickAdd(type)}
-                        className="flex w-full items-center justify-between p-3 hover:bg-accent"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{type.icon}</span>
-                          <span>{type.name}</span>
-                        </div>
-                        <span className="text-green-600">+{Math.abs(type.default_points)}</span>
-                      </button>
-                    ))}
+                  <div className="absolute bottom-full left-0 right-0 z-20 mb-1 rounded-lg border bg-background shadow-lg">
+                    <div className="border-b p-2">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Поиск..."
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredIncomeTypes.length > 0 ? (
+                        filteredIncomeTypes.map((type) => (
+                          <button
+                            key={type.id}
+                            onClick={() => {
+                              handleQuickAdd(type);
+                              setSearchQuery('');
+                            }}
+                            className="flex w-full items-center justify-between p-3 hover:bg-accent"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{type.icon}</span>
+                              <span>{type.name}</span>
+                            </div>
+                            <span className="text-green-600">+{Math.abs(type.default_points)}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="p-3 text-center text-sm text-muted-foreground">
+                          Ничего не найдено
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
@@ -411,6 +450,7 @@ export function HomePage() {
                 onClick={() => {
                   setShowExpenseDropdown(!showExpenseDropdown);
                   setShowIncomeDropdown(false);
+                  setSearchQuery('');
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-destructive p-3 text-destructive hover:bg-red-50 dark:hover:bg-red-950"
               >
@@ -423,22 +463,46 @@ export function HomePage() {
                 <>
                   <div
                     className="fixed inset-0 z-10"
-                    onClick={() => setShowExpenseDropdown(false)}
+                    onClick={() => {
+                      setShowExpenseDropdown(false);
+                      setSearchQuery('');
+                    }}
                   />
-                  <div className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-64 overflow-y-auto rounded-lg border bg-background shadow-lg">
-                    {expenseTypes.map((type) => (
-                      <button
-                        key={type.id}
-                        onClick={() => handleQuickAdd(type)}
-                        className="flex w-full items-center justify-between p-3 hover:bg-accent"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{type.icon}</span>
-                          <span>{type.name}</span>
-                        </div>
-                        <span className="text-destructive">-{Math.abs(type.default_points)}</span>
-                      </button>
-                    ))}
+                  <div className="absolute bottom-full left-0 right-0 z-20 mb-1 rounded-lg border bg-background shadow-lg">
+                    <div className="border-b p-2">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Поиск..."
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredExpenseTypes.length > 0 ? (
+                        filteredExpenseTypes.map((type) => (
+                          <button
+                            key={type.id}
+                            onClick={() => {
+                              handleQuickAdd(type);
+                              setSearchQuery('');
+                            }}
+                            className="flex w-full items-center justify-between p-3 hover:bg-accent"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{type.icon}</span>
+                              <span>{type.name}</span>
+                            </div>
+                            <span className="text-destructive">-{Math.abs(type.default_points)}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="p-3 text-center text-sm text-muted-foreground">
+                          Ничего не найдено
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </>
               )}

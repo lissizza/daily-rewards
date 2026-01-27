@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, Calendar, Settings } from 'lucide-react';
+import { Home, Calendar, Sparkles, Users } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +21,7 @@ export function Layout() {
             to="/"
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center gap-1 px-4 py-2 text-xs',
+                'flex flex-col items-center gap-1 px-3 py-2 text-xs',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )
             }
@@ -34,7 +34,7 @@ export function Layout() {
             to="/calendar"
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center gap-1 px-4 py-2 text-xs',
+                'flex flex-col items-center gap-1 px-3 py-2 text-xs',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )
             }
@@ -44,18 +44,33 @@ export function Layout() {
           </NavLink>
 
           {isAdmin && (
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-1 px-4 py-2 text-xs',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                )
-              }
-            >
-              <Settings className="h-5 w-5" />
-              <span>Настройки</span>
-            </NavLink>
+            <>
+              <NavLink
+                to="/activities"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-1 px-3 py-2 text-xs',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )
+                }
+              >
+                <Sparkles className="h-5 w-5" />
+                <span>Активности</span>
+              </NavLink>
+
+              <NavLink
+                to="/family"
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-1 px-3 py-2 text-xs',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  )
+                }
+              >
+                <Users className="h-5 w-5" />
+                <span>Семья</span>
+              </NavLink>
+            </>
           )}
         </div>
       </nav>
