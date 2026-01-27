@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Minus, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import { supabase } from '@/lib/supabase';
 import { formatDate, cn } from '@/lib/utils';
-import { AddEventModal } from './AddEventModal';
 import { EditablePoints } from '@/components/EditablePoints';
+import { EditableText } from '@/components/EditableText';
 import type { Profile, Event, EventType } from '@/types/database';
 
 export function HomePage() {
@@ -19,10 +19,17 @@ export function HomePage() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Quick add dropdown state
+  const [showIncomeDropdown, setShowIncomeDropdown] = useState(false);
+  const [showExpenseDropdown, setShowExpenseDropdown] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
+
+  // Split event types
+  const incomeTypes = eventTypes.filter((t) => !t.is_deduction);
+  const expenseTypes = eventTypes.filter((t) => t.is_deduction);
 
   useEffect(() => {
     if (!profile) return;
@@ -109,14 +116,42 @@ export function HomePage() {
     return type?.icon ?? '';
   };
 
-  const handleEventAdded = () => {
+  const refreshData = useCallback(() => {
     if (currentChildId) {
       loadEvents(currentChildId, selectedDate);
       loadBalance(currentChildId);
     }
-  };
+  }, [currentChildId, selectedDate]);
 
-  // Inline edit handler for event points
+  // Quick add event
+  const handleQuickAdd = useCallback(
+    async (eventType: EventType) => {
+      if (!profile || !currentChildId) return;
+
+      const points = eventType.is_deduction
+        ? -Math.abs(eventType.default_points)
+        : Math.abs(eventType.default_points);
+
+      const { error } = await supabase.from('events').insert({
+        child_id: currentChildId,
+        event_type_id: eventType.id,
+        points,
+        note: '',
+        date: selectedDate,
+        created_by: profile.id,
+      });
+
+      if (!error) {
+        refreshData();
+      }
+
+      setShowIncomeDropdown(false);
+      setShowExpenseDropdown(false);
+    },
+    [profile, currentChildId, selectedDate, refreshData]
+  );
+
+  // Update event points
   const handleUpdateEventPoints = useCallback(
     async (eventId: string, newPoints: number) => {
       const { error } = await supabase
@@ -124,20 +159,49 @@ export function HomePage() {
         .update({ points: newPoints })
         .eq('id', eventId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // Update local state immediately
       setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventId ? { ...e, points: newPoints } : e
-        )
+        prev.map((e) => (e.id === eventId ? { ...e, points: newPoints } : e))
       );
 
-      // Refresh the balance after points update
       if (currentChildId) {
         loadBalance(currentChildId);
+      }
+    },
+    [currentChildId]
+  );
+
+  // Update event note
+  const handleUpdateEventNote = useCallback(
+    async (eventId: string, newNote: string) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ note: newNote })
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      setEvents((prev) =>
+        prev.map((e) => (e.id === eventId ? { ...e, note: newNote } : e))
+      );
+    },
+    []
+  );
+
+  // Delete event
+  const handleDeleteEvent = useCallback(
+    async (eventId: string) => {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (!error) {
+        setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        if (currentChildId) {
+          loadBalance(currentChildId);
+        }
       }
     },
     [currentChildId]
@@ -231,7 +295,7 @@ export function HomePage() {
       {/* Events list */}
       <div className="flex-1 p-4">
         {events.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">
+          <p className="py-4 text-center text-muted-foreground">
             Нет событий
           </p>
         ) : (
@@ -241,65 +305,144 @@ export function HomePage() {
                 key={event.id}
                 className="rounded-lg border bg-card p-3"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span>{getEventTypeIcon(event)}</span>
-                    <span className="font-medium">{getEventTypeName(event)}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="shrink-0">{getEventTypeIcon(event)}</span>
+                    <span className="font-medium truncate">{getEventTypeName(event)}</span>
                   </div>
-                  {isAdmin ? (
-                    <EditablePoints
-                      value={event.points}
-                      isDeduction={event.points < 0}
-                      onSave={(newValue) =>
-                        handleUpdateEventPoints(event.id, newValue)
-                      }
-                    />
-                  ) : (
-                    <span
-                      className={cn(
-                        'font-semibold',
-                        event.points >= 0 ? 'text-green-600' : 'text-destructive'
-                      )}
-                    >
-                      {event.points >= 0 ? '+' : ''}
-                      {event.points}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isAdmin ? (
+                      <>
+                        <EditablePoints
+                          value={event.points}
+                          isDeduction={event.points < 0}
+                          onSave={(newValue) =>
+                            handleUpdateEventPoints(event.id, newValue)
+                          }
+                        />
+                        <button
+                          onClick={() => handleDeleteEvent(event.id)}
+                          className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span
+                        className={cn(
+                          'font-semibold',
+                          event.points >= 0 ? 'text-green-600' : 'text-destructive'
+                        )}
+                      >
+                        {event.points >= 0 ? '+' : ''}
+                        {event.points}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {event.note && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {event.note}
-                  </p>
+                {/* Note - editable for admin, readonly for child */}
+                {isAdmin ? (
+                  <EditableText
+                    value={event.note}
+                    onSave={(newNote) => handleUpdateEventNote(event.id, newNote)}
+                    placeholder="Добавить заметку..."
+                    className="mt-1 w-full text-sm text-muted-foreground"
+                  />
+                ) : (
+                  event.note && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {event.note}
+                    </p>
+                  )
                 )}
               </div>
             ))}
           </div>
         )}
+
+        {/* Quick add buttons (admin only) */}
+        {isAdmin && currentChildId && (
+          <div className="mt-4 flex gap-2">
+            {/* Income button */}
+            <div className="relative flex-1">
+              <button
+                onClick={() => {
+                  setShowIncomeDropdown(!showIncomeDropdown);
+                  setShowExpenseDropdown(false);
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-green-500 p-3 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="font-medium">Доход</span>
+              </button>
+
+              {/* Income dropdown */}
+              {showIncomeDropdown && incomeTypes.length > 0 && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowIncomeDropdown(false)}
+                  />
+                  <div className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-64 overflow-y-auto rounded-lg border bg-background shadow-lg">
+                    {incomeTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => handleQuickAdd(type)}
+                        className="flex w-full items-center justify-between p-3 hover:bg-accent"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{type.icon}</span>
+                          <span>{type.name}</span>
+                        </div>
+                        <span className="text-green-600">+{Math.abs(type.default_points)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Expense button */}
+            <div className="relative flex-1">
+              <button
+                onClick={() => {
+                  setShowExpenseDropdown(!showExpenseDropdown);
+                  setShowIncomeDropdown(false);
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-destructive p-3 text-destructive hover:bg-red-50 dark:hover:bg-red-950"
+              >
+                <Minus className="h-5 w-5" />
+                <span className="font-medium">Расход</span>
+              </button>
+
+              {/* Expense dropdown */}
+              {showExpenseDropdown && expenseTypes.length > 0 && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowExpenseDropdown(false)}
+                  />
+                  <div className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-64 overflow-y-auto rounded-lg border bg-background shadow-lg">
+                    {expenseTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        onClick={() => handleQuickAdd(type)}
+                        className="flex w-full items-center justify-between p-3 hover:bg-accent"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{type.icon}</span>
+                          <span>{type.name}</span>
+                        </div>
+                        <span className="text-destructive">-{Math.abs(type.default_points)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Add button (admin only) */}
-      {isAdmin && currentChildId && (
-        <div className="fixed bottom-20 left-0 right-0 mx-auto max-w-md pointer-events-none">
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="pointer-events-auto absolute bottom-0 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
-          >
-            <Plus className="h-6 w-6" />
-          </button>
-        </div>
-      )}
-
-      {/* Add Event Modal */}
-      {isAdmin && currentChildId && (
-        <AddEventModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          childId={currentChildId}
-          date={selectedDate}
-          eventTypes={eventTypes}
-          onEventAdded={handleEventAdded}
-        />
-      )}
     </div>
   );
 }

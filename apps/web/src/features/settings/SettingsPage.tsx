@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
 import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
 import { EditablePoints } from '@/components/EditablePoints';
+import { EditableText } from '@/components/EditableText';
 import type { Profile, EventType } from '@/types/database';
 
 export function SettingsPage() {
@@ -17,25 +18,20 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Edit/Delete state for event types
-  const [editingEventType, setEditingEventType] = useState<EventType | null>(null);
+  // Delete state
   const [deletingEventType, setDeletingEventType] = useState<EventType | null>(null);
-
-  // Edit/Delete state for children
-  const [editingChild, setEditingChild] = useState<Profile | null>(null);
   const [deletingChild, setDeletingChild] = useState<Profile | null>(null);
 
-  // Form state for editing event type
-  const [editEventTypeName, setEditEventTypeName] = useState('');
-  const [editEventTypeIcon, setEditEventTypeIcon] = useState('');
-  const [editEventTypePoints, setEditEventTypePoints] = useState(0);
-  const [editEventTypeIsDeduction, setEditEventTypeIsDeduction] = useState(false);
-
-  // Form state for editing child
+  // Edit child modal
+  const [editingChild, setEditingChild] = useState<Profile | null>(null);
   const [editChildName, setEditChildName] = useState('');
   const [editChildLogin, setEditChildLogin] = useState('');
 
   const clearError = useCallback(() => setError(null), []);
+
+  // Split event types by category
+  const incomeTypes = eventTypes.filter((t) => !t.is_deduction);
+  const expenseTypes = eventTypes.filter((t) => t.is_deduction);
 
   useEffect(() => {
     if (!profile) return;
@@ -114,42 +110,44 @@ export function SettingsPage() {
     await signOut();
   };
 
-  // Event Type Edit/Delete handlers
-  const openEditEventType = (eventType: EventType) => {
-    setEditingEventType(eventType);
-    setEditEventTypeName(eventType.name);
-    setEditEventTypeIcon(eventType.icon || '');
-    setEditEventTypePoints(Math.abs(eventType.default_points));
-    setEditEventTypeIsDeduction(eventType.is_deduction);
-  };
-
-  const handleUpdateEventType = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingEventType) return;
-    setLoading(true);
-
-    try {
+  // Inline edit handlers for event types
+  const handleUpdateEventTypeName = useCallback(
+    async (typeId: string, newName: string) => {
       const { error } = await supabase
         .from('event_types')
-        .update({
-          name: editEventTypeName,
-          icon: editEventTypeIcon || null,
-          default_points: editEventTypeIsDeduction ? -Math.abs(editEventTypePoints) : Math.abs(editEventTypePoints),
-          is_deduction: editEventTypeIsDeduction,
-        })
-        .eq('id', editingEventType.id);
+        .update({ name: newName })
+        .eq('id', typeId);
 
-      if (error) throw error;
+      if (error) {
+        setError(extractErrorMessage(error));
+        throw error;
+      }
 
-      setEditingEventType(null);
-      loadEventTypes();
-    } catch (err) {
-      console.error('Error updating event type:', err);
-      setError(extractErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+      setEventTypes((prev) =>
+        prev.map((t) => (t.id === typeId ? { ...t, name: newName } : t))
+      );
+    },
+    []
+  );
+
+  const handleUpdateEventTypePoints = useCallback(
+    async (typeId: string, newPoints: number) => {
+      const { error } = await supabase
+        .from('event_types')
+        .update({ default_points: newPoints })
+        .eq('id', typeId);
+
+      if (error) {
+        setError(extractErrorMessage(error));
+        throw error;
+      }
+
+      setEventTypes((prev) =>
+        prev.map((t) => (t.id === typeId ? { ...t, default_points: newPoints } : t))
+      );
+    },
+    []
+  );
 
   const handleDeleteEventType = async () => {
     if (!deletingEventType) return;
@@ -173,7 +171,7 @@ export function SettingsPage() {
     }
   };
 
-  // Child Edit/Delete handlers
+  // Child handlers
   const openEditChild = (child: Profile) => {
     setEditingChild(child);
     setEditChildName(child.name);
@@ -211,16 +209,12 @@ export function SettingsPage() {
     setLoading(true);
 
     try {
-      // First delete the profile
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', deletingChild.id);
 
       if (profileError) throw profileError;
-
-      // Note: Deleting auth user requires admin API, which is not available client-side
-      // The profile deletion should cascade properly based on database constraints
 
       setDeletingChild(null);
       loadChildren();
@@ -232,27 +226,34 @@ export function SettingsPage() {
     }
   };
 
-  // Inline edit handler for event type points
-  const handleUpdateEventTypePoints = useCallback(
-    async (typeId: string, newPoints: number) => {
-      const { error } = await supabase
-        .from('event_types')
-        .update({ default_points: newPoints })
-        .eq('id', typeId);
-
-      if (error) {
-        setError(extractErrorMessage(error));
-        throw error;
-      }
-
-      // Update local state immediately
-      setEventTypes((prev) =>
-        prev.map((t) =>
-          t.id === typeId ? { ...t, default_points: newPoints } : t
-        )
-      );
-    },
-    []
+  // Render event type row
+  const renderEventTypeRow = (type: EventType) => (
+    <div
+      key={type.id}
+      className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3"
+    >
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span className="shrink-0 text-lg">{type.icon}</span>
+        <EditableText
+          value={type.name}
+          onSave={(newName) => handleUpdateEventTypeName(type.id, newName)}
+          className="font-medium"
+        />
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <EditablePoints
+          value={type.default_points}
+          isDeduction={type.is_deduction}
+          onSave={(newValue) => handleUpdateEventTypePoints(type.id, newValue)}
+        />
+        <button
+          onClick={() => setDeletingEventType(type)}
+          className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 
   return (
@@ -276,7 +277,7 @@ export function SettingsPage() {
                   Логин: {child.login}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <button
                   onClick={() => openEditChild(child)}
                   className="rounded-md p-2 hover:bg-accent"
@@ -356,43 +357,19 @@ export function SettingsPage() {
         )}
       </section>
 
-      {/* Event types section */}
+      {/* Income types section */}
       <section className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Типы событий</h2>
-
+        <h2 className="mb-3 text-lg font-semibold text-green-600">Доход</h2>
         <div className="space-y-2">
-          {eventTypes.map((type) => (
-            <div
-              key={type.id}
-              className="flex items-center justify-between rounded-lg border bg-card p-3"
-            >
-              <div className="flex items-center gap-2">
-                <span>{type.icon}</span>
-                <span className="font-medium">{type.name}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <EditablePoints
-                  value={type.default_points}
-                  isDeduction={type.is_deduction}
-                  onSave={(newValue) =>
-                    handleUpdateEventTypePoints(type.id, newValue)
-                  }
-                />
-                <button
-                  onClick={() => openEditEventType(type)}
-                  className="rounded-md p-2 hover:bg-accent"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setDeletingEventType(type)}
-                  className="rounded-md p-2 text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+          {incomeTypes.map(renderEventTypeRow)}
+        </div>
+      </section>
+
+      {/* Expense types section */}
+      <section className="mb-6">
+        <h2 className="mb-3 text-lg font-semibold text-destructive">Расход</h2>
+        <div className="space-y-2">
+          {expenseTypes.map(renderEventTypeRow)}
         </div>
       </section>
 
@@ -405,88 +382,6 @@ export function SettingsPage() {
         Выйти
       </button>
 
-      {/* Edit Event Type Modal */}
-      {editingEventType && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setEditingEventType(null)}
-          />
-          <div className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-background">
-            <div className="sticky top-0 flex items-center justify-between border-b bg-background p-4">
-              <h2 className="text-lg font-semibold">Редактировать тип события</h2>
-              <button
-                onClick={() => setEditingEventType(null)}
-                className="rounded-md p-2 hover:bg-accent"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleUpdateEventType} className="space-y-4 p-4">
-              <div>
-                <label className="block text-sm font-medium">Название</label>
-                <input
-                  type="text"
-                  value={editEventTypeName}
-                  onChange={(e) => setEditEventTypeName(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Иконка (эмодзи)</label>
-                <input
-                  type="text"
-                  value={editEventTypeIcon}
-                  onChange={(e) => setEditEventTypeIcon(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
-                  placeholder="Например: ⭐"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Баллы по умолчанию</label>
-                <input
-                  type="number"
-                  value={editEventTypePoints}
-                  onChange={(e) => setEditEventTypePoints(Number(e.target.value))}
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
-                  min={0}
-                  required
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isDeduction"
-                  checked={editEventTypeIsDeduction}
-                  onChange={(e) => setEditEventTypeIsDeduction(e.target.checked)}
-                  className="h-4 w-4 accent-primary"
-                />
-                <label htmlFor="isDeduction" className="text-sm font-medium">
-                  Это штраф (вычитает баллы)
-                </label>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingEventType(null)}
-                  className="flex-1 rounded-md border px-4 py-3 font-medium"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 rounded-md bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
-                >
-                  {loading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </>
-      )}
-
       {/* Delete Event Type Confirmation Modal */}
       {deletingEventType && (
         <>
@@ -495,7 +390,7 @@ export function SettingsPage() {
             onClick={() => setDeletingEventType(null)}
           />
           <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-background p-4">
-            <h2 className="mb-2 text-lg font-semibold">Удалить тип события?</h2>
+            <h2 className="mb-2 text-lg font-semibold">Удалить категорию?</h2>
             <p className="mb-4 text-muted-foreground">
               Вы уверены, что хотите удалить &quot;{deletingEventType.name}&quot;? Это действие нельзя отменить.
             </p>
