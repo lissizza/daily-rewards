@@ -7,12 +7,14 @@ import { supabase } from '@/lib/supabase';
 import { formatDate, cn } from '@/lib/utils';
 import { EditablePoints } from '@/components/EditablePoints';
 import { EditableText } from '@/components/EditableText';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { Profile, Event, EventType } from '@/types/database';
 
 export function HomePage() {
   const { profile } = useAuthStore();
   const { selectedDate, selectedChildId, setSelectedChildId, goToNextDay, goToPrevDay } = useAppStore();
   const navigate = useNavigate();
+  const t = useTranslation();
 
   const [children, setChildren] = useState<Profile[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -232,12 +234,12 @@ export function HomePage() {
   if (isAdmin && children.length === 0) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-4 p-4 text-center">
-        <p className="text-muted-foreground">Добавьте ребёнка в настройках</p>
+        <p className="text-muted-foreground">{t.home.addChildPrompt}</p>
         <button
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/family')}
           className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
         >
-          Перейти в настройки
+          {t.home.goToSettings}
         </button>
       </div>
     );
@@ -308,7 +310,7 @@ export function HomePage() {
       <div className="flex-1 p-4">
         {events.length === 0 ? (
           <p className="py-4 text-center text-muted-foreground">
-            Нет событий
+            {t.home.noEvents}
           </p>
         ) : (
           <div className="space-y-2">
@@ -362,7 +364,7 @@ export function HomePage() {
                   <EditableText
                     value={event.note}
                     onSave={(newNote) => handleUpdateEventNote(event.id, newNote)}
-                    placeholder="Добавить заметку..."
+                    placeholder={t.home.addNote}
                     className="mt-1 w-full text-sm text-muted-foreground"
                   />
                 ) : (
@@ -391,7 +393,7 @@ export function HomePage() {
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-green-500 p-3 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
               >
                 <Plus className="h-5 w-5" />
-                <span className="font-medium">Доход</span>
+                <span className="font-medium">{t.home.income}</span>
               </button>
 
               {/* Income dropdown */}
@@ -410,7 +412,7 @@ export function HomePage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Поиск..."
+                        placeholder={t.home.search}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         autoFocus
                       />
@@ -435,7 +437,7 @@ export function HomePage() {
                         ))
                       ) : (
                         <p className="p-3 text-center text-sm text-muted-foreground">
-                          Ничего не найдено
+                          {t.home.nothingFound}
                         </p>
                       )}
                     </div>
@@ -455,7 +457,7 @@ export function HomePage() {
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-destructive p-3 text-destructive hover:bg-red-50 dark:hover:bg-red-950"
               >
                 <Minus className="h-5 w-5" />
-                <span className="font-medium">Расход</span>
+                <span className="font-medium">{t.home.expense}</span>
               </button>
 
               {/* Expense dropdown */}
@@ -474,7 +476,7 @@ export function HomePage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Поиск..."
+                        placeholder={t.home.search}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         autoFocus
                       />
@@ -499,7 +501,7 @@ export function HomePage() {
                         ))
                       ) : (
                         <p className="p-3 text-center text-sm text-muted-foreground">
-                          Ничего не найдено
+                          {t.home.nothingFound}
                         </p>
                       )}
                     </div>

@@ -1,12 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
-import { LogOut, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, X, Globe } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
 import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
+import { useLanguageStore, type Language } from '@/stores/language';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { Profile } from '@/types/database';
 
 export function FamilyPage() {
   const { profile, signOut } = useAuthStore();
+  const { language, setLanguage } = useLanguageStore();
+  const t = useTranslation();
   const [children, setChildren] = useState<Profile[]>([]);
   const [parents, setParents] = useState<Profile[]>([]);
   const [showAddChild, setShowAddChild] = useState(false);
@@ -275,11 +279,11 @@ export function FamilyPage() {
   return (
     <div className="flex flex-col p-4">
       <ErrorToast message={error} onClose={clearError} />
-      <h1 className="mb-6 text-xl font-bold">Семья</h1>
+      <h1 className="mb-6 text-xl font-bold">{t.family.title}</h1>
 
       {/* Children section */}
       <section className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Дети</h2>
+        <h2 className="mb-3 text-lg font-semibold">{t.family.children}</h2>
 
         <div className="space-y-2">
           {children.map((child) => (
@@ -290,7 +294,7 @@ export function FamilyPage() {
               <div>
                 <p className="font-medium">{child.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  Логин: {child.login}
+                  {t.family.login}: {child.login}
                 </p>
               </div>
               <div className="flex gap-1">
@@ -314,7 +318,7 @@ export function FamilyPage() {
         {showAddChild ? (
           <form onSubmit={handleAddChild} className="mt-3 space-y-3 rounded-lg border p-3">
             <div>
-              <label className="block text-sm font-medium">Имя</label>
+              <label className="block text-sm font-medium">{t.family.name}</label>
               <input
                 type="text"
                 value={newChildName}
@@ -324,7 +328,7 @@ export function FamilyPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium">Логин</label>
+              <label className="block text-sm font-medium">{t.family.login}</label>
               <input
                 type="text"
                 value={newChildLogin}
@@ -335,7 +339,7 @@ export function FamilyPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium">Пароль</label>
+              <label className="block text-sm font-medium">{t.family.password}</label>
               <input
                 type="password"
                 value={newChildPassword}
@@ -351,14 +355,14 @@ export function FamilyPage() {
                 onClick={() => setShowAddChild(false)}
                 className="flex-1 rounded-md border px-4 py-2"
               >
-                Отмена
+                {t.family.cancel}
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="flex-1 rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
               >
-                {loading ? 'Добавление...' : 'Добавить'}
+                {loading ? t.family.adding : t.family.add}
               </button>
             </div>
           </form>
@@ -368,14 +372,14 @@ export function FamilyPage() {
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed p-3 text-muted-foreground hover:border-primary hover:text-primary"
           >
             <Plus className="h-4 w-4" />
-            Добавить ребёнка
+            {t.family.addChild}
           </button>
         )}
       </section>
 
       {/* Adults section */}
       <section className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Взрослые</h2>
+        <h2 className="mb-3 text-lg font-semibold">{t.family.adults}</h2>
 
         <div className="space-y-2">
           {parents.map((parent) => (
@@ -387,11 +391,11 @@ export function FamilyPage() {
                 <p className="font-medium">
                   {parent.name}
                   {parent.id === profile?.id && (
-                    <span className="ml-2 text-xs text-muted-foreground">(вы)</span>
+                    <span className="ml-2 text-xs text-muted-foreground">({t.family.you})</span>
                   )}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {parent.email || (parent.role === 'owner' ? 'Владелец' : '')}
+                  {parent.email || (parent.role === 'owner' ? t.family.owner : '')}
                 </p>
               </div>
               {/* Show edit/delete only for owner, and can't delete yourself */}
@@ -421,7 +425,7 @@ export function FamilyPage() {
             {showAddCoParent ? (
               <form onSubmit={handleAddCoParent} className="mt-3 space-y-3 rounded-lg border p-3">
                 <div>
-                  <label className="block text-sm font-medium">Имя</label>
+                  <label className="block text-sm font-medium">{t.family.name}</label>
                   <input
                     type="text"
                     value={coParentName}
@@ -431,7 +435,7 @@ export function FamilyPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Email</label>
+                  <label className="block text-sm font-medium">{t.family.email}</label>
                   <input
                     type="email"
                     value={coParentEmail}
@@ -441,7 +445,7 @@ export function FamilyPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Пароль</label>
+                  <label className="block text-sm font-medium">{t.family.password}</label>
                   <input
                     type="password"
                     value={coParentPassword}
@@ -462,14 +466,14 @@ export function FamilyPage() {
                     }}
                     className="flex-1 rounded-md border px-4 py-2"
                   >
-                    Отмена
+                    {t.family.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
                     className="flex-1 rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
                   >
-                    {loading ? 'Создание...' : 'Создать'}
+                    {loading ? t.family.adding : t.family.add}
                   </button>
                 </div>
               </form>
@@ -479,11 +483,40 @@ export function FamilyPage() {
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed p-3 text-muted-foreground hover:border-primary hover:text-primary"
               >
                 <Plus className="h-4 w-4" />
-                Добавить взрослого
+                {t.family.addAdult}
               </button>
             )}
           </>
         )}
+      </section>
+
+      {/* Language switcher */}
+      <section className="mb-6">
+        <h2 className="mb-3 text-lg font-semibold">{t.family.language}</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLanguage('ru')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border p-3 ${
+              language === 'ru'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'hover:bg-accent'
+            }`}
+          >
+            <Globe className="h-4 w-4" />
+            Русский
+          </button>
+          <button
+            onClick={() => setLanguage('en')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border p-3 ${
+              language === 'en'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'hover:bg-accent'
+            }`}
+          >
+            <Globe className="h-4 w-4" />
+            English
+          </button>
+        </div>
       </section>
 
       {/* Sign out */}
@@ -492,7 +525,7 @@ export function FamilyPage() {
         className="flex items-center justify-center gap-2 rounded-lg border border-destructive p-3 text-destructive hover:bg-destructive/10"
       >
         <LogOut className="h-4 w-4" />
-        Выйти
+        {t.family.signOut}
       </button>
 
       {/* Edit Child Modal */}
@@ -504,7 +537,7 @@ export function FamilyPage() {
           />
           <div className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-background">
             <div className="sticky top-0 flex items-center justify-between border-b bg-background p-4">
-              <h2 className="text-lg font-semibold">Редактировать ребёнка</h2>
+              <h2 className="text-lg font-semibold">{t.family.editChild}</h2>
               <button
                 onClick={() => setEditingChild(null)}
                 className="rounded-md p-2 hover:bg-accent"
@@ -514,7 +547,7 @@ export function FamilyPage() {
             </div>
             <form onSubmit={handleUpdateChild} className="space-y-4 p-4">
               <div>
-                <label className="block text-sm font-medium">Имя</label>
+                <label className="block text-sm font-medium">{t.family.name}</label>
                 <input
                   type="text"
                   value={editChildName}
@@ -524,7 +557,7 @@ export function FamilyPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Логин</label>
+                <label className="block text-sm font-medium">{t.family.login}</label>
                 <input
                   type="text"
                   value={editChildLogin}
@@ -540,14 +573,14 @@ export function FamilyPage() {
                   onClick={() => setEditingChild(null)}
                   className="flex-1 rounded-md border px-4 py-3 font-medium"
                 >
-                  Отмена
+                  {t.family.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="flex-1 rounded-md bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
                 >
-                  {loading ? 'Сохранение...' : 'Сохранить'}
+                  {loading ? t.family.saving : t.family.save}
                 </button>
               </div>
             </form>
@@ -563,9 +596,9 @@ export function FamilyPage() {
             onClick={() => setDeletingChild(null)}
           />
           <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-background p-4">
-            <h2 className="mb-2 text-lg font-semibold">Удалить ребёнка?</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t.family.deleteChild}</h2>
             <p className="mb-4 text-muted-foreground">
-              Вы уверены, что хотите удалить &quot;{deletingChild.name}&quot;? Это действие нельзя отменить. Все события связанные с этим ребёнком также будут удалены.
+              {t.family.deleteConfirm} &quot;{deletingChild.name}&quot;? {t.family.cannotUndo}
             </p>
             <div className="flex gap-3">
               <button
@@ -573,7 +606,7 @@ export function FamilyPage() {
                 onClick={() => setDeletingChild(null)}
                 className="flex-1 rounded-md border px-4 py-3 font-medium"
               >
-                Отмена
+                {t.family.cancel}
               </button>
               <button
                 type="button"
@@ -581,7 +614,7 @@ export function FamilyPage() {
                 disabled={loading}
                 className="flex-1 rounded-md bg-destructive px-4 py-3 font-medium text-destructive-foreground disabled:opacity-50"
               >
-                {loading ? 'Удаление...' : 'Удалить'}
+                {loading ? t.family.deleting : t.family.delete}
               </button>
             </div>
           </div>
@@ -597,7 +630,7 @@ export function FamilyPage() {
           />
           <div className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-background">
             <div className="sticky top-0 flex items-center justify-between border-b bg-background p-4">
-              <h2 className="text-lg font-semibold">Редактировать взрослого</h2>
+              <h2 className="text-lg font-semibold">{t.family.editAdult}</h2>
               <button
                 onClick={() => setEditingAdult(null)}
                 className="rounded-md p-2 hover:bg-accent"
@@ -607,7 +640,7 @@ export function FamilyPage() {
             </div>
             <form onSubmit={handleUpdateAdult} className="space-y-4 p-4">
               <div>
-                <label className="block text-sm font-medium">Имя</label>
+                <label className="block text-sm font-medium">{t.family.name}</label>
                 <input
                   type="text"
                   value={editAdultName}
@@ -622,14 +655,14 @@ export function FamilyPage() {
                   onClick={() => setEditingAdult(null)}
                   className="flex-1 rounded-md border px-4 py-3 font-medium"
                 >
-                  Отмена
+                  {t.family.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="flex-1 rounded-md bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
                 >
-                  {loading ? 'Сохранение...' : 'Сохранить'}
+                  {loading ? t.family.saving : t.family.save}
                 </button>
               </div>
             </form>
@@ -645,9 +678,9 @@ export function FamilyPage() {
             onClick={() => setDeletingAdult(null)}
           />
           <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-background p-4">
-            <h2 className="mb-2 text-lg font-semibold">Удалить взрослого?</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t.family.deleteAdult}</h2>
             <p className="mb-4 text-muted-foreground">
-              Вы уверены, что хотите удалить &quot;{deletingAdult.name}&quot;? Это действие нельзя отменить.
+              {t.family.deleteConfirm} &quot;{deletingAdult.name}&quot;? {t.family.cannotUndo}
             </p>
             <div className="flex gap-3">
               <button
@@ -655,7 +688,7 @@ export function FamilyPage() {
                 onClick={() => setDeletingAdult(null)}
                 className="flex-1 rounded-md border px-4 py-3 font-medium"
               >
-                Отмена
+                {t.family.cancel}
               </button>
               <button
                 type="button"
@@ -663,7 +696,7 @@ export function FamilyPage() {
                 disabled={loading}
                 className="flex-1 rounded-md bg-destructive px-4 py-3 font-medium text-destructive-foreground disabled:opacity-50"
               >
-                {loading ? 'Удаление...' : 'Удалить'}
+                {loading ? t.family.deleting : t.family.delete}
               </button>
             </div>
           </div>

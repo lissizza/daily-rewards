@@ -1,10 +1,12 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { Home, Calendar, Sparkles, Users } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
+import { useTranslation } from '@/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
 export function Layout() {
   const { profile } = useAuthStore();
+  const t = useTranslation();
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
 
   return (
@@ -27,7 +29,7 @@ export function Layout() {
             }
           >
             <Home className="h-5 w-5" />
-            <span>Главная</span>
+            <span>{t.nav.home}</span>
           </NavLink>
 
           <NavLink
@@ -40,7 +42,7 @@ export function Layout() {
             }
           >
             <Calendar className="h-5 w-5" />
-            <span>Календарь</span>
+            <span>{t.nav.calendar}</span>
           </NavLink>
 
           {isAdmin && (
@@ -55,7 +57,7 @@ export function Layout() {
                 }
               >
                 <Sparkles className="h-5 w-5" />
-                <span>Активности</span>
+                <span>{t.nav.activities}</span>
               </NavLink>
 
               <NavLink
@@ -68,7 +70,7 @@ export function Layout() {
                 }
               >
                 <Users className="h-5 w-5" />
-                <span>Семья</span>
+                <span>{t.nav.family}</span>
               </NavLink>
             </>
           )}

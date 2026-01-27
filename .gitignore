@@ -65,3 +65,4 @@ CLAUDE.local.md
 *.prompts
 prompts/
 .vercel
+.env*.local
