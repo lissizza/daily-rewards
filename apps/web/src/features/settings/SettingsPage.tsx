@@ -42,6 +42,12 @@ export function SettingsPage() {
   // Icon picker state
   const [editingIconTypeId, setEditingIconTypeId] = useState<string | null>(null);
 
+  // Add co-parent (second admin) state
+  const [showAddCoParent, setShowAddCoParent] = useState(false);
+  const [coParentEmail, setCoParentEmail] = useState('');
+  const [coParentName, setCoParentName] = useState('');
+  const [coParentPassword, setCoParentPassword] = useState('');
+
   const clearError = useCallback(() => setError(null), []);
 
   // Split event types by category
@@ -123,6 +129,70 @@ export function SettingsPage() {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleAddCoParent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+    setLoading(true);
+
+    try {
+      // Create new user via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: coParentEmail,
+        password: coParentPassword,
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Failed to create user');
+
+      // Update their profile to be an admin linked to same children
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: coParentName,
+          role: 'admin',
+          // No parent_id for admins
+        })
+        .eq('id', authData.user.id);
+
+      if (profileError) throw profileError;
+
+      // Copy event types from current admin to new admin
+      const { data: myEventTypes } = await supabase
+        .from('event_types')
+        .select('*')
+        .eq('admin_id', profile.id);
+
+      if (myEventTypes && myEventTypes.length > 0) {
+        const copiedEventTypes = myEventTypes.map((et) => ({
+          admin_id: authData.user!.id,
+          name: et.name,
+          default_points: et.default_points,
+          is_deduction: et.is_deduction,
+          icon: et.icon,
+          sort_order: et.sort_order,
+        }));
+
+        await supabase.from('event_types').insert(copiedEventTypes);
+      }
+
+      // Re-link all children to also have the new admin as parent
+      // Note: Current DB schema has single parent_id, so we'll need to update children
+      // to point to the new admin OR create a separate linking table
+      // For simplicity, we'll inform the user that children need to be shared
+
+      setCoParentEmail('');
+      setCoParentName('');
+      setCoParentPassword('');
+      setShowAddCoParent(false);
+      setError('Второй родитель создан! Для доступа к детям им нужно будет создать их заново или изменить parent_id вручную.');
+    } catch (err) {
+      console.error('Error adding co-parent:', err);
+      setError(extractErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Inline edit handlers for event types
@@ -562,6 +632,79 @@ export function SettingsPage() {
           >
             <Plus className="h-4 w-4" />
             Добавить ребёнка
+          </button>
+        )}
+      </section>
+
+      {/* Co-parent section */}
+      <section className="mb-6">
+        <h2 className="mb-3 text-lg font-semibold">Второй родитель</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Добавьте второго родителя для совместного управления
+        </p>
+
+        {showAddCoParent ? (
+          <form onSubmit={handleAddCoParent} className="space-y-3 rounded-lg border p-3">
+            <div>
+              <label className="block text-sm font-medium">Имя</label>
+              <input
+                type="text"
+                value={coParentName}
+                onChange={(e) => setCoParentName(e.target.value)}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Email</label>
+              <input
+                type="email"
+                value={coParentEmail}
+                onChange={(e) => setCoParentEmail(e.target.value)}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Пароль</label>
+              <input
+                type="password"
+                value={coParentPassword}
+                onChange={(e) => setCoParentPassword(e.target.value)}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
+                required
+                minLength={6}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddCoParent(false);
+                  setCoParentEmail('');
+                  setCoParentName('');
+                  setCoParentPassword('');
+                }}
+                className="flex-1 rounded-md border px-4 py-2"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+              >
+                {loading ? 'Создание...' : 'Создать'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setShowAddCoParent(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed p-3 text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить второго родителя
           </button>
         )}
       </section>
