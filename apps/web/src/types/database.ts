@@ -114,6 +114,10 @@ export interface Database {
         Args: { p_child_id: string };
         Returns: number;
       };
+      seed_default_event_types: {
+        Args: { p_admin_id: string };
+        Returns: void;
+      };
     };
   };
 }

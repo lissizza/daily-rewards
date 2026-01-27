@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
 import { supabase } from '@/lib/supabase';
 import { formatDate, formatPoints, cn } from '@/lib/utils';
+import { AddEventModal } from './AddEventModal';
 import type { Profile, Event, EventType } from '@/types/database';
 
 export function HomePage() {
@@ -17,6 +18,7 @@ export function HomePage() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
@@ -102,6 +104,13 @@ export function HomePage() {
   const getEventTypeIcon = (event: Event): string => {
     const type = eventTypes.find((t) => t.id === event.event_type_id);
     return type?.icon ?? '';
+  };
+
+  const handleEventAdded = () => {
+    if (currentChildId) {
+      loadEvents(currentChildId, selectedDate);
+      loadBalance(currentChildId);
+    }
   };
 
   const currentChild = children.find((c) => c.id === selectedChildId);
@@ -230,11 +239,23 @@ export function HomePage() {
       {/* Add button (admin only) */}
       {isAdmin && currentChildId && (
         <button
-          onClick={() => {/* TODO: open add modal */}}
+          onClick={() => setIsAddModalOpen(true)}
           className="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
         >
           <Plus className="h-6 w-6" />
         </button>
+      )}
+
+      {/* Add Event Modal */}
+      {isAdmin && currentChildId && (
+        <AddEventModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          childId={currentChildId}
+          date={selectedDate}
+          eventTypes={eventTypes}
+          onEventAdded={handleEventAdded}
+        />
       )}
     </div>
   );

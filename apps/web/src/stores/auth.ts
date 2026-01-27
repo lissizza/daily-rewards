@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { seedDefaultEventTypes, hasEventTypes } from '@/lib/seed';
 import type { User } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database';
 
@@ -19,30 +20,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: true,
 
   signIn: async (emailOrLogin: string, password: string) => {
+    set({ loading: true });
     const isEmail = emailOrLogin.includes('@');
 
-    if (isEmail) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailOrLogin,
-        password,
-      });
-      if (error) throw error;
-    } else {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('login', emailOrLogin)
-        .single();
+    try {
+      if (isEmail) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: emailOrLogin,
+          password,
+        });
+        if (error) throw error;
+      } else {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('login', emailOrLogin)
+          .single();
 
-      if (!profile?.email) {
-        throw new Error('User not found');
+        if (!profile?.email) {
+          throw new Error('User not found');
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({
+          email: profile.email,
+          password,
+        });
+        if (error) throw error;
       }
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: profile.email,
-        password,
-      });
-      if (error) throw error;
+    } catch (error) {
+      set({ loading: false });
+      throw error;
     }
   },
 
@@ -85,9 +92,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .eq('id', session.user.id)
           .single();
 
-        set({ user: session.user, profile });
+        set({ user: session.user, profile, loading: false });
+
+        // Seed default event types for new admin users
+        if (event === 'SIGNED_IN' && profile?.role === 'admin') {
+          // Check if this admin already has event types (prevents duplicate seeding)
+          const alreadyHasEventTypes = await hasEventTypes(session.user.id);
+          if (!alreadyHasEventTypes) {
+            console.log('[auth] New admin detected, seeding default event types...');
+            const result = await seedDefaultEventTypes(session.user.id);
+            if (!result.success) {
+              console.error('[auth] Failed to seed default event types:', result.error);
+            }
+          }
+        }
       } else {
-        set({ user: null, profile: null });
+        set({ user: null, profile: null, loading: false });
       }
     });
   },
