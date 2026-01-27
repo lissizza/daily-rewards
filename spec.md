@@ -2,12 +2,17 @@
 
 ## Overview
 
-Application for tracking children's bonus points. Parents can add or deduct points for various events (school, sports, purchases, etc.).
+Family application for tracking children's bonus points. Parents (owner/admin) can add or deduct points for various events (school, sports, purchases, etc.). Children can view their balance and history.
+
+## Live Demo
+
+- **Production**: https://dailyrewards.vercel.app
+- **Repository**: https://github.com/lissizza/daily-rewards
 
 ## Target Platforms
 
-1. **Web** (MVP) - Progressive Web App
-2. **Android** - React Native / Expo
+1. **Web** (MVP) - Progressive Web App ✅
+2. **Android** - React Native / Expo (future)
 3. **iOS/iPadOS** - React Native / Expo (future)
 
 ## User System
@@ -16,35 +21,50 @@ Application for tracking children's bonus points. Parents can add or deduct poin
 
 | Role | Capabilities |
 |------|-------------|
-| **Admin** | Create children, assign login/password, add/edit events, manage event types, full access |
-| **Child** | View own balance and event history only (read-only) |
+| **Owner** | Full access: create family, invite co-parent (admin), create children, manage events/types, delete family members |
+| **Admin** | Almost full access: create children, manage events/types. Cannot add other admins or delete owner |
+| **Child** | View own balance and event history only (read-only). Cannot see siblings |
+
+### Family Structure
+
+- Each family has one **owner** (the person who registered)
+- Owner can invite one **admin** (co-parent) to the same family
+- Both owner and admin can create/manage **children**
+- Children belong to a family and can only see their own data
 
 ### Authentication Flow
 
-1. Admin registers (email + password) - single admin per "family"
-2. Admin creates child accounts (login + password)
-3. Children log in with credentials created by admin
-4. No self-registration for children
+1. Owner registers (email + password) → creates new family automatically
+2. Owner can add admin (co-parent) with email + password → joins same family
+3. Owner/Admin creates child accounts (login + password)
+4. Children log in with credentials created by parent
+5. No self-registration for children or admins
 
 ## Data Model
 
-### User / Profile
+### Family
+- `id`: UUID
+- `name`: string (optional, defaults to "Семья {owner_name}")
+- `created_at`: timestamp
+
+### Profile (User)
 - `id`: UUID (from Supabase Auth)
-- `email`: string (admin only, nullable for children)
+- `email`: string (admin/owner only, nullable for children)
 - `login`: string (for children, unique)
 - `name`: string
 - `avatar`: string (optional)
-- `role`: 'admin' | 'child'
-- `parent_id`: UUID (FK → Profile, null for admin)
+- `role`: 'owner' | 'admin' | 'child'
+- `family_id`: UUID (FK → Family)
+- `parent_id`: UUID (FK → Profile, deprecated, kept for compatibility)
 - `created_at`: timestamp
 
 ### EventType
 - `id`: UUID
-- `admin_id`: UUID (FK → Profile, owner)
+- `family_id`: UUID (FK → Family)
 - `name`: string
 - `default_points`: number
 - `is_deduction`: boolean
-- `icon`: string (optional)
+- `icon`: string (emoji)
 - `sort_order`: number
 - `created_at`: timestamp
 
@@ -53,7 +73,7 @@ Application for tracking children's bonus points. Parents can add or deduct poin
 - `child_id`: UUID (FK → Profile)
 - `event_type_id`: UUID | null (FK → EventType)
 - `custom_name`: string | null (for custom events)
-- `points`: number
+- `points`: number (positive for income, negative for expense)
 - `note`: string
 - `date`: date (YYYY-MM-DD)
 - `created_by`: UUID (FK → Profile, admin who created)
@@ -62,177 +82,52 @@ Application for tracking children's bonus points. Parents can add or deduct poin
 ## Default Event Types
 
 ### Rewards (positive points)
-| Name | Default Points |
-|------|---------------|
-| Посещение школы | 10 |
-| Хорошая оценка | 15 |
-| Запись ДЗ | 5 |
-| Длинная прогулка | 10 |
-| Занятие спортом | 15 |
-| Бонус | 0 (manual input) |
+| Icon | Name | Default Points |
+|------|------|---------------|
+| 🏫 | Посещение школы | 10 |
+| ⭐ | Хорошая оценка | 15 |
+| 📝 | Запись ДЗ | 5 |
+| 🚶 | Длинная прогулка | 10 |
+| ⚽ | Занятие спортом | 15 |
+| 🎁 | Бонус | 0 (manual input) |
 
 ### Deductions (negative points)
-| Name | Default Points |
-|------|---------------|
-| Вычет | 0 (manual input) |
-| Покупка | 0 (manual input) |
+| Icon | Name | Default Points |
+|------|------|---------------|
+| ➖ | Вычет | 0 (manual input) |
+| 🛒 | Покупка | 0 (manual input) |
 
 ## User Interface
 
-### Login Screen
+### Navigation (Bottom Tabs)
+- **Home** (🏠) - Daily events view
+- **Calendar** (📅) - Month calendar
+- **Activities** (📋) - Event types management (admin only)
+- **Family** (👨‍👩‍👧‍👦) - Family management + settings (admin only)
 
-```
-┌─────────────────────────────────────┐
-│                                     │
-│         Daily Rewards               │
-│                                     │
-│  ┌───────────────────────────────┐  │
-│  │ Login / Email                 │  │
-│  └───────────────────────────────┘  │
-│  ┌───────────────────────────────┐  │
-│  │ Password                      │  │
-│  └───────────────────────────────┘  │
-│                                     │
-│         [  Sign In  ]               │
-│                                     │
-└─────────────────────────────────────┘
-```
+### Main Screen Features
+- Child selector (dropdown if multiple children)
+- Balance display (⭐ points)
+- Date navigation (< date > with calendar button)
+- Events list for selected day
+- Color-coded cards: green for income, pink for expenses
+- Quick-add buttons: + Income / − Expense (admin only)
+- Editable points and notes (admin only)
 
-### Main Screen - Admin View
+### Calendar Features
+- Month view with navigation
+- Click day to go to that day's events
 
-```
-┌─────────────────────────────────────┐
-│ [▼ Child Name]          ⭐ 150 pts  │
-├─────────────────────────────────────┤
-│      < January 26, 2026 >    [📅]   │
-├─────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ │
-│ │ School Attendance    +10        │ │
-│ │ Note: —                         │ │
-│ └─────────────────────────────────┘ │
-│ ┌─────────────────────────────────┐ │
-│ │ Good Grade           +15        │ │
-│ │ Note: Math, A                   │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│              [ + ]                  │
-├─────────────────────────────────────┤
-│  [Home]  [Calendar]  [Settings]     │
-└─────────────────────────────────────┘
-```
+### Family Page (Admin only)
+- Language switcher (EN/RU)
+- Children list with edit/delete
+- Add child form (name, login, password)
+- Co-parent management (owner only)
+- Sign out button
 
-### Main Screen - Child View (Read-Only)
-
-```
-┌─────────────────────────────────────┐
-│ Alex                    ⭐ 150 pts  │
-├─────────────────────────────────────┤
-│      < January 26, 2026 >    [📅]   │
-├─────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ │
-│ │ School Attendance    +10        │ │
-│ │ Note: —                         │ │
-│ └─────────────────────────────────┘ │
-│ ┌─────────────────────────────────┐ │
-│ │ Good Grade           +15        │ │
-│ │ Note: Math, A                   │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│  (No add button for children)       │
-├─────────────────────────────────────┤
-│       [Home]  [Calendar]            │
-└─────────────────────────────────────┘
-```
-
-### Date Navigation
-- Swipe left/right - switch days
-- Calendar button - open calendar view
-
-### Calendar View
-
-**Month (grid):**
-```
-┌─────────────────────────────────────┐
-│     <   January 2026   >            │
-├─────────────────────────────────────┤
-│ Mon Tue Wed Thu Fri Sat Sun         │
-│                 1   2   3   4       │
-│                    +25              │
-│  5   6   7   8   9  10  11          │
-│     -10 +15                         │
-│ ...                                 │
-└─────────────────────────────────────┘
-```
-
-**Week (rows):**
-```
-┌─────────────────────────────────────┐
-│     <   Week 4   >                  │
-├─────────────────────────────────────┤
-│ Mon 20 │ 🏫 📚      │ +25           │
-│ Tue 21 │ 🏫 ⚽      │ +35           │
-│ Wed 22 │ 🏫 🛒      │ -15           │
-│ ...                                 │
-└─────────────────────────────────────┘
-```
-
-### Add Event (Admin only)
-
-```
-┌─────────────────────────────────────┐
-│           Add Event                 │
-├─────────────────────────────────────┤
-│ Type: [▼ Select event          ]    │
-│                                     │
-│ ── Rewards ──                       │
-│ ○ School Attendance (+10)           │
-│ ○ Good Grade (+15)                  │
-│ ○ Homework Logged (+5)              │
-│ ○ Bonus (enter points)              │
-│ ── Deductions ──                    │
-│ ○ Deduction (enter points)          │
-│ ○ Purchase (enter points)           │
-│ ── Custom ──                        │
-│ ○ Custom event                      │
-│                                     │
-│ Points: [_____15_____]              │
-│                                     │
-│ Note: [__________________]          │
-│                                     │
-│       [Cancel]    [Add]             │
-└─────────────────────────────────────┘
-```
-
-### Settings (Admin only)
-
-```
-┌─────────────────────────────────────┐
-│           Settings                  │
-├─────────────────────────────────────┤
-│ CHILDREN                            │
-│ ┌─────────────────────────────────┐ │
-│ │ Alex          login: alex123    │ │
-│ │                      [Edit] [×] │ │
-│ └─────────────────────────────────┘ │
-│ ┌─────────────────────────────────┐ │
-│ │ Emma          login: emma456    │ │
-│ │                      [Edit] [×] │ │
-│ └─────────────────────────────────┘ │
-│         [ + Add Child ]             │
-│                                     │
-│ EVENT TYPES                         │
-│ ┌─────────────────────────────────┐ │
-│ │ 🏫 School Attendance  +10       │ │
-│ │ ⭐ Good Grade         +15       │ │
-│ │ ...                    [Edit]   │ │
-│ └─────────────────────────────────┘ │
-│                                     │
-│ THEME                               │
-│ [Light] [Dark] [System]             │
-│                                     │
-│ [Sign Out]                          │
-└─────────────────────────────────────┘
-```
+### Activities Page (Admin only)
+- Event types list grouped by income/expense
+- Add/edit/delete event types
 
 ## Technical Stack
 
@@ -240,142 +135,120 @@ Application for tracking children's bonus points. Parents can add or deduct poin
 - **Framework**: React 18+ with TypeScript
 - **Build**: Vite
 - **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **State**: Zustand
-- **Forms**: React Hook Form + Zod
+- **State**: Zustand (with persist middleware)
 - **Date handling**: date-fns
-- **Routing**: React Router
+- **Routing**: React Router v6
+- **i18n**: Custom hooks with language store
 
 ### Backend
 - **Platform**: Supabase
 - **Database**: PostgreSQL
 - **Auth**: Supabase Auth
-- **Realtime**: Supabase Realtime (for live updates)
+- **Security**: Row Level Security (RLS)
 
-### Mobile (Phase 2)
-- **Framework**: React Native + Expo
-- **Styling**: NativeWind
+### Infrastructure
+- **Hosting**: Vercel (auto-deploy on push to main)
+- **CI/CD**: GitHub Actions (migrations)
+- **Repository**: GitHub
 
 ## Project Structure
 
 ```
 daily_rewards/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # Auto-apply migrations
 ├── apps/
 │   └── web/
+│       ├── public/
+│       │   ├── pwa-512x512.png
+│       │   ├── pwa-192x192.png
+│       │   ├── apple-touch-icon.png
+│       │   └── favicon.ico
 │       ├── src/
 │       │   ├── components/
-│       │   │   ├── ui/           # shadcn components
+│       │   │   ├── ui/         # Reusable UI components
+│       │   │   ├── Layout.tsx
 │       │   │   └── ...
 │       │   ├── features/
-│       │   │   ├── auth/
-│       │   │   ├── events/
-│       │   │   ├── calendar/
-│       │   │   └── settings/
-│       │   ├── hooks/
+│       │   │   ├── auth/       # Login, signup
+│       │   │   ├── home/       # Main events view
+│       │   │   ├── calendar/   # Calendar page
+│       │   │   ├── activities/ # Event types management
+│       │   │   └── family/     # Family & settings
+│       │   ├── i18n/
+│       │   │   ├── translations.ts
+│       │   │   └── useTranslation.ts
 │       │   ├── lib/
 │       │   │   ├── supabase.ts
-│       │   │   └── utils.ts
+│       │   │   ├── utils.ts
+│       │   │   └── validation.ts
 │       │   ├── stores/
-│       │   └── types/
-│       └── ...
-├── packages/
-│   └── core/
-│       ├── src/
-│       │   ├── models/
-│       │   ├── i18n/
-│       │   └── utils/
-│       └── ...
-└── supabase/
-    ├── migrations/
-    └── seed.sql
+│       │   │   ├── auth.ts
+│       │   │   ├── app.ts
+│       │   │   └── language.ts
+│       │   ├── types/
+│       │   │   └── database.ts
+│       │   ├── App.tsx
+│       │   └── main.tsx
+│       ├── index.html
+│       └── vite.config.ts
+├── supabase/
+│   └── migrations/
+│       ├── 00001_initial_schema.sql
+│       ├── 00002_seed_default_event_types.sql
+│       ├── 00003_fix_event_type_seeding.sql
+│       ├── 00004_family_structure.sql
+│       ├── 00005_security_fixes.sql
+│       └── 00006_restrict_child_profile_view.sql
+├── spec.md                     # This file
+├── tasks.md                    # Task tracking
+├── CLAUDE.md                   # Instructions for Claude
+└── README.md                   # Project documentation
 ```
 
-## Supabase Schema
+## Security
 
-```sql
--- Profiles (extends Supabase auth.users)
-create table profiles (
-  id uuid references auth.users primary key,
-  email text,
-  login text unique,
-  name text not null,
-  avatar_url text,
-  role text not null check (role in ('admin', 'child')),
-  parent_id uuid references profiles(id),
-  created_at timestamptz default now()
-);
+### Row Level Security Policies
 
--- Event Types
-create table event_types (
-  id uuid primary key default gen_random_uuid(),
-  admin_id uuid references profiles(id) not null,
-  name text not null,
-  default_points integer not null default 0,
-  is_deduction boolean not null default false,
-  icon text,
-  sort_order integer not null default 0,
-  created_at timestamptz default now()
-);
+#### profiles
+- Users can view own profile
+- Owner/Admin can view all family members
+- Children can NOT view siblings (only own profile)
+- Owner/Admin can update own profile and children
+- Owner can add admin to family
 
--- Events (transactions)
-create table events (
-  id uuid primary key default gen_random_uuid(),
-  child_id uuid references profiles(id) not null,
-  event_type_id uuid references event_types(id),
-  custom_name text,
-  points integer not null,
-  note text default '',
-  date date not null,
-  created_by uuid references profiles(id) not null,
-  created_at timestamptz default now()
-);
-
--- Row Level Security
-alter table profiles enable row level security;
-alter table event_types enable row level security;
-alter table events enable row level security;
-
--- Policies: Admin sees all their children, children see only themselves
--- (detailed policies in migrations)
-```
-
-## Security (Row Level Security)
-
-### profiles
-- Admin can read/update own profile and children's profiles
-- Child can only read own profile
-
-### event_types
-- Admin can CRUD own event types
+#### event_types
+- Owner/Admin can CRUD family event types
 - Children can read event types (for display)
 
-### events
-- Admin can CRUD events for their children
-- Child can only read own events
+#### events
+- Owner/Admin can CRUD events for family children
+- Children can only read own events
 
-## Functional Requirements
+### Route Protection (Frontend)
+- `/activities` and `/family` routes protected by `AdminRoute` component
+- Children redirected to home if they try to access admin routes
 
-### MVP
-1. Admin authentication (email/password)
-2. Child authentication (login/password)
-3. Admin: CRUD children with login/password
-4. Admin: CRUD event types
-5. Admin: CRUD events
-6. Child: View balance and events (read-only)
-7. Calendar view (month/week)
-8. Date navigation (swipe)
-9. Balance calculation
-10. PWA support
+### Password Policy
+- Minimum 8 characters
+- Must contain at least one letter and one number
 
-### Phase 2
-1. React Native mobile app
-2. Push notifications
-3. Statistics and charts
-4. Data export
+### SQL Functions with Authorization
+- `get_child_balance(child_id)` - verifies family membership
+- `get_email_by_login(login)` - verifies family membership
+
+## Localization
+
+Supported languages:
+- **Russian** (ru) - default
+- **English** (en)
+
+Language preference persisted in localStorage.
 
 ## Success Metrics
 
-- Load time < 2 sec
-- Realtime sync between devices
-- PWA installable
-- Smooth animations (60 fps)
+- Load time < 2 sec ✅
+- PWA installable ✅
+- Works offline (cached assets)
+- Responsive design (mobile-first)

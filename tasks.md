@@ -1,176 +1,165 @@
-# Daily Rewards - Task Plan
+# Daily Rewards - Tasks & Progress
 
-## Architecture Decisions
+> **Important**: Update this file after completing each task!
 
-### Tech Stack Rationale
+## Current Status: MVP Complete ✅
 
-| Technology | Reason |
-|------------|--------|
-| **React + TypeScript** | Single codebase for web and mobile (via React Native) |
-| **Vite** | Fast builds, excellent TypeScript and PWA support |
-| **Zustand** | Simple state management, works in React and React Native |
-| **Supabase** | PostgreSQL + Auth + Realtime, generous free tier |
-| **Tailwind + shadcn/ui** | Rapid UI development, good customization |
-| **date-fns** | Lightweight date library |
-| **Monorepo (pnpm workspaces)** | Code reuse between web and mobile |
-
-### Architecture Patterns
-
-1. **Feature-based structure** - code organized by features, not file types
-2. **Role-based access** - admin (full access) vs child (read-only)
-3. **Realtime sync** - Supabase Realtime for instant updates across devices
+The web application is deployed and functional at https://dailyrewards.vercel.app
 
 ---
 
-## Phase 1: MVP Web
+## ✅ Completed
 
-### Milestone 1: Infrastructure
+### Infrastructure
 - [x] Monorepo setup (pnpm workspaces)
-- [x] Web app creation (Vite + React + TypeScript)
-- [x] Tailwind CSS setup
-- [ ] shadcn/ui components installation
-- [ ] ESLint + Prettier setup
+- [x] Web app (Vite + React + TypeScript)
+- [x] Tailwind CSS
+- [x] GitHub repository (lissizza/daily-rewards)
+- [x] Vercel deployment (auto-deploy on push)
+- [x] GitHub Actions for migrations
+- [x] PWA manifest and icons
 
-### Milestone 2: Backend (Supabase)
+### Backend (Supabase)
 - [x] Database schema design
 - [x] SQL migrations with RLS policies
 - [x] TypeScript types for database
-- [ ] Create Supabase project
-- [ ] Apply migrations
-- [ ] Seed default event types function
+- [x] Supabase project connected
+- [x] Default event types seeding
+- [x] Family structure (owner/admin/child roles)
+- [x] Security fixes (authorization in SQL functions)
+- [x] Child profile isolation (can't see siblings)
 
-### Milestone 3: Core Package
-- [x] Profile model (admin/child roles)
-- [x] EventType model
-- [x] Event model
-- [x] Default event types
-- [x] i18n (ru/en)
-
-### Milestone 4: Authentication
-- [x] Supabase client setup
-- [x] Auth store (Zustand)
+### Authentication
+- [x] Supabase Auth client setup
+- [x] Auth store (Zustand with persistence)
 - [x] Login page (email for admin, login for child)
-- [x] Protected routes
-- [ ] Password reset flow
+- [x] Signup page (owner registration)
+- [x] Protected routes (ProtectedRoute component)
+- [x] Admin-only routes (AdminRoute component)
+- [x] Password validation (8+ chars, letter + number)
 
-### Milestone 5: Main Screen
+### Main Screen (HomePage)
 - [x] Layout with bottom navigation
 - [x] Header (child selector + balance)
-- [x] Date navigation component
+- [x] Date navigation (prev/next day)
 - [x] Events list for selected day
-- [x] Event card component
-- [x] FAB "+" button (admin only)
-- [ ] Add event modal/bottom sheet
-- [ ] Swipe navigation between days
+- [x] Event cards with color coding (green/pink)
+- [x] Quick-add buttons (Income/Expense dropdowns)
+- [x] Editable points (click to edit)
+- [x] Editable notes
+- [x] Delete event button
+- [x] Child view (read-only mode)
 
-### Milestone 6: Calendar
+### Calendar
 - [x] Month view (grid)
-- [ ] Week view (rows)
-- [ ] Event indicators on days
 - [x] Month navigation
 - [x] Day selection → navigate to home
+- [x] Event indicators on days
 
-### Milestone 7: Settings (Admin)
-- [x] Settings page layout
-- [x] Children list
-- [x] Add child form
-- [ ] Edit child
-- [ ] Delete child (with confirmation)
-- [ ] Event types management
-- [ ] Theme toggle (light/dark)
+### Activities Page (Admin)
+- [x] Event types list
+- [x] Add event type form
+- [x] Edit event type
+- [x] Delete event type
+- [x] Income/Expense grouping
+- [x] Icon picker (emoji)
 
-### Milestone 8: PWA
-- [x] PWA manifest config
-- [ ] App icons (192x192, 512x512)
-- [ ] Apple touch icon
-- [ ] Service worker for offline
-- [ ] Install prompt
+### Family Page (Admin)
+- [x] Children list with edit/delete
+- [x] Add child form (name, login, password)
+- [x] Edit child (name, login)
+- [x] Delete child with confirmation
+- [x] Co-parent management (owner only)
+- [x] Sign out button
+- [x] Language switcher (EN/RU)
+
+### Localization
+- [x] Translation system (useTranslation hook)
+- [x] Language store with persistence
+- [x] Russian translations
+- [x] English translations
+- [x] Applied to: Layout, HomePage, FamilyPage
+
+### PWA
+- [x] Manifest configuration
+- [x] App icons (192x192, 512x512)
+- [x] Apple touch icon
+- [x] Favicon
+- [x] Service worker (workbox)
 
 ---
 
-## Phase 2: Polish & Features
+## 🔄 In Progress
 
-### Milestone 9: Event Management
-- [ ] Add event modal with type selector
-- [ ] Custom event (manual name + points)
-- [ ] Edit event
-- [ ] Delete event
-- [ ] Event type quick-add buttons
+Nothing currently in progress.
 
-### Milestone 10: UX Improvements
+---
+
+## 📋 Backlog
+
+### High Priority
+- [ ] Apply translations to ActivitiesPage
+- [ ] Apply translations to CalendarPage
+- [ ] Week view in calendar
 - [ ] Swipe gestures for day navigation
-- [ ] Pull-to-refresh
+- [ ] Password reset flow
+
+### Medium Priority
 - [ ] Loading skeletons
-- [ ] Toast notifications
-- [ ] Empty states
+- [ ] Pull-to-refresh
+- [ ] Toast notifications (success/error)
+- [ ] Empty states illustrations
+- [ ] Theme toggle (light/dark/system)
+- [ ] Edit child password
 
-### Milestone 11: Statistics
-- [ ] Weekly/monthly summary
+### Low Priority
+- [ ] Statistics page (weekly/monthly summary)
 - [ ] Balance history chart
-- [ ] Top activities
+- [ ] Data export (CSV/PDF)
+- [ ] Custom event types icons
+- [ ] Drag-and-drop reorder event types
 
----
-
-## Phase 3: Mobile
-
-### Milestone 12: React Native
-- [ ] Expo project setup
-- [ ] Reuse core package
-- [ ] Adapt UI for mobile
+### Phase 2: Mobile
+- [ ] React Native + Expo project setup
+- [ ] Reuse shared logic
+- [ ] Adapt UI for native
 - [ ] Android APK build
 - [ ] Google Play publication
 
 ---
 
-## Current Sprint
+## 🐛 Known Issues
 
-### Completed
-- [x] Git repository initialized
-- [x] spec.md created
-- [x] tasks.md created
-- [x] Monorepo configured (pnpm workspaces)
-- [x] Web app structure created
-- [x] Supabase schema and migrations
-- [x] Core models (Profile, EventType, Event)
-- [x] Auth store and login page
-- [x] Main screen (HomePage)
-- [x] Calendar page (month view)
-- [x] Settings page (children management)
-
-### Next Up
-- [ ] Create Supabase project and apply migrations
-- [ ] Add event modal implementation
-- [ ] Seed default event types on admin signup
-- [ ] shadcn/ui button, input, dialog components
+1. ~~Child login shows blank page~~ ✅ Fixed
+2. ~~Children can see siblings via RLS~~ ✅ Fixed
+3. ~~Routes /activities and /family accessible to children~~ ✅ Fixed
 
 ---
 
-## Commands
+## 📝 Notes
 
+### Database Migrations
+Migrations are in `supabase/migrations/`. To apply:
 ```bash
-# Install dependencies
-pnpm install
-
-# Run web app
-pnpm dev
-
-# Build
-pnpm build
-
-# Lint
-pnpm lint
+supabase db push
 ```
 
+### Development
+```bash
+pnpm install    # Install dependencies
+pnpm dev        # Run dev server
+pnpm build      # Production build
+```
+
+### Deployment
+- Push to `main` branch triggers:
+  1. GitHub Actions → applies migrations
+  2. Vercel → builds and deploys
+
 ---
 
-## Documentation Links
+## 📚 Reference
 
-- [React](https://react.dev)
-- [Vite](https://vitejs.dev)
-- [Tailwind CSS](https://tailwindcss.com)
-- [shadcn/ui](https://ui.shadcn.com)
-- [Zustand](https://github.com/pmndrs/zustand)
-- [Supabase](https://supabase.com/docs)
-- [date-fns](https://date-fns.org)
-- [React Native](https://reactnative.dev)
-- [Expo](https://expo.dev)
+- [spec.md](./spec.md) - Full specification
+- [README.md](./README.md) - Project overview
+- [CLAUDE.md](./CLAUDE.md) - Instructions for Claude
