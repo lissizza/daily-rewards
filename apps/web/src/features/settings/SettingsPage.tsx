@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { LogOut, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, X, GripVertical } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
 import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
 import { EditablePoints } from '@/components/EditablePoints';
 import { EditableText } from '@/components/EditableText';
@@ -33,6 +34,10 @@ export function SettingsPage() {
   const [newEventName, setNewEventName] = useState('');
   const [newEventPoints, setNewEventPoints] = useState('');
   const [newEventIcon, setNewEventIcon] = useState('');
+
+  // Drag and drop state
+  const [draggedType, setDraggedType] = useState<EventType | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -211,6 +216,90 @@ export function SettingsPage() {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, type: EventType) => {
+    setDraggedType(type);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, type: EventType) => {
+    e.preventDefault();
+    if (draggedType && draggedType.id !== type.id && draggedType.is_deduction === type.is_deduction) {
+      setDragOverId(type.id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetType: EventType) => {
+    e.preventDefault();
+    setDragOverId(null);
+
+    if (!draggedType || draggedType.id === targetType.id) {
+      setDraggedType(null);
+      return;
+    }
+
+    // Only allow reordering within the same category
+    if (draggedType.is_deduction !== targetType.is_deduction) {
+      setDraggedType(null);
+      return;
+    }
+
+    const categoryTypes = draggedType.is_deduction ? expenseTypes : incomeTypes;
+    const draggedIndex = categoryTypes.findIndex((t) => t.id === draggedType.id);
+    const targetIndex = categoryTypes.findIndex((t) => t.id === targetType.id);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedType(null);
+      return;
+    }
+
+    // Reorder locally first for immediate feedback
+    const reordered = [...categoryTypes];
+    const [removed] = reordered.splice(draggedIndex, 1);
+    reordered.splice(targetIndex, 0, removed);
+
+    // Update sort_order values
+    const updates = reordered.map((type, index) => ({
+      id: type.id,
+      sort_order: index,
+    }));
+
+    // Update local state immediately
+    setEventTypes((prev) => {
+      const otherTypes = prev.filter((t) => t.is_deduction !== draggedType.is_deduction);
+      const updatedTypes = reordered.map((type, index) => ({
+        ...type,
+        sort_order: index,
+      }));
+      return [...otherTypes, ...updatedTypes].sort((a, b) => a.sort_order - b.sort_order);
+    });
+
+    setDraggedType(null);
+
+    // Persist to database
+    try {
+      for (const update of updates) {
+        await supabase
+          .from('event_types')
+          .update({ sort_order: update.sort_order })
+          .eq('id', update.id);
+      }
+    } catch (err) {
+      console.error('Error updating sort order:', err);
+      setError(extractErrorMessage(err));
+      loadEventTypes(); // Reload on error
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedType(null);
+    setDragOverId(null);
+  };
+
   // Child handlers
   const openEditChild = (child: Profile) => {
     setEditingChild(child);
@@ -270,9 +359,20 @@ export function SettingsPage() {
   const renderEventTypeRow = (type: EventType) => (
     <div
       key={type.id}
-      className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3"
+      draggable
+      onDragStart={(e) => handleDragStart(e, type)}
+      onDragOver={(e) => handleDragOver(e, type)}
+      onDragLeave={handleDragLeave}
+      onDrop={(e) => handleDrop(e, type)}
+      onDragEnd={handleDragEnd}
+      className={cn(
+        'flex items-center justify-between gap-2 rounded-lg border bg-card p-3 cursor-grab active:cursor-grabbing',
+        draggedType?.id === type.id && 'opacity-50',
+        dragOverId === type.id && 'border-primary border-2'
+      )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
+        <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="shrink-0 text-lg">{type.icon}</span>
         <EditableText
           value={type.name}
