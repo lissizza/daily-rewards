@@ -48,7 +48,9 @@ export function HomePage() {
     if (isAdmin) {
       loadChildren();
     } else {
+      // Child user - load their own balance and set loading to false
       loadBalance(profile.id);
+      setLoading(false);
     }
     loadEventTypes();
   }, [profile]);
