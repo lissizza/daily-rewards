@@ -84,6 +84,21 @@ export const translations = {
       language: 'Язык',
       signOut: 'Выйти',
     },
+    // Login page
+    login: {
+      title: 'Daily Rewards',
+      signIn: 'Войти в аккаунт',
+      signUp: 'Создать аккаунт',
+      name: 'Имя',
+      email: 'Email',
+      emailOrLogin: 'Email или логин',
+      password: 'Пароль',
+      loading: 'Загрузка...',
+      signInButton: 'Войти',
+      signUpButton: 'Зарегистрироваться',
+      hasAccount: 'Уже есть аккаунт? Войти',
+      noAccount: 'Нет аккаунта? Зарегистрироваться',
+    },
     // Common
     common: {
       loading: 'Загрузка...',
@@ -175,6 +190,21 @@ export const translations = {
       cannotUndo: 'This action cannot be undone.',
       language: 'Language',
       signOut: 'Sign out',
+    },
+    // Login page
+    login: {
+      title: 'Daily Rewards',
+      signIn: 'Sign in to your account',
+      signUp: 'Create an account',
+      name: 'Name',
+      email: 'Email',
+      emailOrLogin: 'Email or login',
+      password: 'Password',
+      loading: 'Loading...',
+      signInButton: 'Sign in',
+      signUpButton: 'Sign up',
+      hasAccount: 'Already have an account? Sign in',
+      noAccount: "Don't have an account? Sign up",
     },
     // Common
     common: {

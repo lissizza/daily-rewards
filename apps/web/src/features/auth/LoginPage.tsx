@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Globe } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
+import { useLanguageStore } from '@/stores/language';
+import { useTranslation } from '@/i18n/useTranslation';
 import { validatePassword, PASSWORD_MIN_LENGTH } from '@/lib/validation';
 
 export function LoginPage() {
@@ -12,7 +15,9 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const { signIn, signUp, user } = useAuthStore();
+  const { language, setLanguage } = useLanguageStore();
   const navigate = useNavigate();
+  const t = useTranslation();
 
   // Navigate when user is authenticated (after onAuthStateChange updates state)
   useEffect(() => {
@@ -49,13 +54,27 @@ export function LoginPage() {
     }
   };
 
+  const toggleLanguage = () => {
+    setLanguage(language === 'ru' ? 'en' : 'ru');
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
+      {/* Language toggle */}
+      <button
+        type="button"
+        onClick={toggleLanguage}
+        className="absolute right-4 top-4 flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+      >
+        <Globe className="h-4 w-4" />
+        {language === 'ru' ? 'EN' : 'RU'}
+      </button>
+
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Daily Rewards</h1>
+          <h1 className="text-2xl font-bold">{t.login.title}</h1>
           <p className="text-muted-foreground">
-            {isSignUp ? 'Создать аккаунт' : 'Войти в аккаунт'}
+            {isSignUp ? t.login.signUp : t.login.signIn}
           </p>
         </div>
 
@@ -63,7 +82,7 @@ export function LoginPage() {
           {isSignUp && (
             <div>
               <label htmlFor="name" className="block text-sm font-medium">
-                Имя
+                {t.login.name}
               </label>
               <input
                 id="name"
@@ -78,7 +97,7 @@ export function LoginPage() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium">
-              {isSignUp ? 'Email' : 'Email или логин'}
+              {isSignUp ? t.login.email : t.login.emailOrLogin}
             </label>
             <input
               id="email"
@@ -92,7 +111,7 @@ export function LoginPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium">
-              Пароль
+              {t.login.password}
             </label>
             <input
               id="password"
@@ -114,7 +133,7 @@ export function LoginPage() {
             disabled={submitting}
             className="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {submitting ? 'Загрузка...' : isSignUp ? 'Зарегистрироваться' : 'Войти'}
+            {submitting ? t.login.loading : isSignUp ? t.login.signUpButton : t.login.signInButton}
           </button>
         </form>
 
@@ -124,9 +143,7 @@ export function LoginPage() {
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            {isSignUp
-              ? 'Уже есть аккаунт? Войти'
-              : 'Нет аккаунта? Зарегистрироваться'}
+            {isSignUp ? t.login.hasAccount : t.login.noAccount}
           </button>
         </div>
       </div>
