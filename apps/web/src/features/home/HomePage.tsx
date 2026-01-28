@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Minus, Calendar, Trash2 } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
+import { useLanguageStore } from '@/stores/language';
 import { supabase } from '@/lib/supabase';
 import { formatDate, cn } from '@/lib/utils';
 import { EditablePoints } from '@/components/EditablePoints';
@@ -13,6 +14,7 @@ import type { Profile, Event, EventType } from '@/types/database';
 export function HomePage() {
   const { profile } = useAuthStore();
   const { selectedDate, selectedChildId, setSelectedChildId, goToNextDay, goToPrevDay } = useAppStore();
+  const { language } = useLanguageStore();
   const navigate = useNavigate();
   const t = useTranslation();
 
@@ -313,7 +315,7 @@ export function HomePage() {
           <ChevronLeft className="h-5 w-5" />
         </button>
 
-        <span className="font-medium">{formatDate(selectedDate)}</span>
+        <span className="font-medium">{formatDate(selectedDate, language)}</span>
 
         <div className="flex gap-1">
           <button
