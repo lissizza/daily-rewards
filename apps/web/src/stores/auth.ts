@@ -16,16 +16,27 @@ interface AuthState {
 
 async function loadProfile(userId: string): Promise<Profile | null> {
   console.log('[auth] Loading profile for user:', userId);
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  console.log('[auth] Profile loaded:', data, 'Error:', error);
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('[auth] Profile load error:', error.message, error.code);
+      return null;
+    }
+
+    console.log('[auth] Profile loaded:', data?.role, data?.name);
+    return data;
+  } catch (e) {
+    console.error('[auth] Profile load exception:', e);
+    return null;
+  }
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   loading: true,
@@ -62,7 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.log('[auth] Sign in successful, user:', authResult.data.user?.id);
       if (authResult.data.user) {
         const profile = await loadProfile(authResult.data.user.id);
-        console.log('[auth] Setting state with profile:', profile);
+        console.log('[auth] Setting state with profile role:', profile?.role);
         set({ user: authResult.data.user, profile, loading: false });
       }
     } catch (error) {
@@ -88,9 +99,30 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initialize: () => {
-    // Listen for auth changes
+    // Listen for auth changes (for token refresh, sign out from other tab, etc)
     supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
+      console.log('[auth] onAuthStateChange:', event);
+
+      // Skip if we already have user state (avoid race with signIn)
+      const currentState = get();
+      if (event === 'SIGNED_IN' && currentState.user) {
+        console.log('[auth] Already signed in, skipping onAuthStateChange');
+        return;
+      }
+
+      if (event === 'SIGNED_OUT' || !session) {
+        set({ user: null, profile: null, loading: false });
+        return;
+      }
+
+      if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Just update user, keep profile
+        set({ user: session.user });
+        return;
+      }
+
+      // For INITIAL_SESSION or other events
+      if (session?.user && !currentState.user) {
         const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
 
@@ -101,27 +133,37 @@ export const useAuthStore = create<AuthState>((set) => ({
             await seedDefaultEventTypes(profile.family_id);
           }
         }
-      } else {
-        set({ user: null, profile: null, loading: false });
       }
     });
 
     // Check for existing session with timeout for PWA
     const sessionTimeout = setTimeout(() => {
-      console.log('[auth] Session check timed out, showing login');
-      set({ loading: false });
+      const state = get();
+      if (state.loading && !state.user) {
+        console.log('[auth] Session check timed out, showing login');
+        set({ loading: false });
+      }
     }, 3000);
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(sessionTimeout);
+      const state = get();
+
+      // Skip if signIn already set the state
+      if (state.user) {
+        console.log('[auth] getSession: user already set, skipping');
+        return;
+      }
+
       if (session?.user) {
         const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
       } else {
         set({ loading: false });
       }
-    }).catch(() => {
+    }).catch((err) => {
       clearTimeout(sessionTimeout);
+      console.error('[auth] getSession error:', err);
       set({ loading: false });
     });
   },
