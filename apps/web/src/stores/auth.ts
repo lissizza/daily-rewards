@@ -68,20 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (session?.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      set({ user: session.user, profile, loading: false });
-    } else {
-      set({ loading: false });
-    }
-
+    // Set up auth state listener first
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const { data: profile } = await supabase
@@ -116,6 +103,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null, profile: null, loading: false });
       }
     });
+
+    // Then try to get existing session with timeout
+    try {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Session timeout')), 5000)
+      );
+
+      const sessionPromise = supabase.auth.getSession();
+
+      const { data: { session } } = await Promise.race([
+        sessionPromise,
+        timeoutPromise,
+      ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        set({ user: session.user, profile, loading: false });
+      } else {
+        set({ loading: false });
+      }
+    } catch (error) {
+      console.error('[auth] Failed to get session:', error);
+      set({ loading: false });
+    }
   },
 }));
 
