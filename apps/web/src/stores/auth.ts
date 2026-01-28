@@ -1,18 +1,22 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { seedDefaultEventTypes, hasEventTypes } from '@/lib/seed';
-import type { User } from '@supabase/supabase-js';
+import type { User, Subscription } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database';
 
 interface AuthState {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  initialized: boolean;
   signIn: (emailOrLogin: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
-  initialize: () => void;
+  initialize: () => () => void; // Returns cleanup function
 }
+
+// Store subscription reference for cleanup
+let authSubscription: Subscription | null = null;
 
 async function loadProfile(userId: string): Promise<Profile | null> {
   console.log('[auth] Loading profile for user:', userId);
@@ -40,46 +44,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   loading: true,
+  initialized: false,
 
   signIn: async (emailOrLogin: string, password: string) => {
-    set({ loading: true });
     const isEmail = emailOrLogin.includes('@');
 
-    try {
-      let authResult;
+    // Perform auth - onAuthStateChange will handle the state update
+    if (isEmail) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailOrLogin,
+        password,
+      });
+      if (error) throw error;
+    } else {
+      const { data: email, error: lookupError } = await supabase
+        .rpc('get_email_by_login', { p_login: emailOrLogin });
 
-      if (isEmail) {
-        authResult = await supabase.auth.signInWithPassword({
-          email: emailOrLogin,
-          password,
-        });
-        if (authResult.error) throw authResult.error;
-      } else {
-        const { data: email, error: lookupError } = await supabase
-          .rpc('get_email_by_login', { p_login: emailOrLogin });
-
-        if (lookupError || !email) {
-          throw new Error('Пользователь не найден');
-        }
-
-        authResult = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (authResult.error) throw authResult.error;
+      if (lookupError || !email) {
+        throw new Error('Пользователь не найден');
       }
 
-      // Load profile after successful login
-      console.log('[auth] Sign in successful, user:', authResult.data.user?.id);
-      if (authResult.data.user) {
-        const profile = await loadProfile(authResult.data.user.id);
-        console.log('[auth] Setting state with profile role:', profile?.role);
-        set({ user: authResult.data.user, profile, loading: false });
-      }
-    } catch (error) {
-      set({ loading: false });
-      throw error;
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
     }
+    // State will be updated by onAuthStateChange listener
   },
 
   signUp: async (email: string, password: string, name: string) => {
@@ -95,38 +86,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ user: null, profile: null });
+    // State will be updated by onAuthStateChange listener
   },
 
   initialize: () => {
-    // Listen for auth changes (for token refresh, sign out from other tab, etc)
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[auth] onAuthStateChange:', event);
+    const state = get();
 
-      // Skip if we already have user state (avoid race with signIn)
-      const currentState = get();
-      if (event === 'SIGNED_IN' && currentState.user) {
-        console.log('[auth] Already signed in, skipping onAuthStateChange');
-        return;
-      }
+    // Prevent multiple initializations
+    if (state.initialized) {
+      console.log('[auth] Already initialized, skipping');
+      return () => {};
+    }
+
+    set({ initialized: true });
+    console.log('[auth] Initializing auth store');
+
+    // Single source of truth: onAuthStateChange handles ALL auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[auth] onAuthStateChange:', event, session?.user?.id);
 
       if (event === 'SIGNED_OUT' || !session) {
         set({ user: null, profile: null, loading: false });
         return;
       }
 
-      if (event === 'TOKEN_REFRESHED' && session?.user) {
-        // Just update user, keep profile
+      if (event === 'TOKEN_REFRESHED') {
+        // Just update user token, keep profile
         set({ user: session.user });
         return;
       }
 
-      // For INITIAL_SESSION or other events
-      if (session?.user && !currentState.user) {
+      // For INITIAL_SESSION, SIGNED_IN, or USER_UPDATED
+      if (session?.user) {
+        set({ loading: true });
         const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
 
-        // Seed default event types for new owner
+        // Seed default event types for new owner on first sign in
         if (event === 'SIGNED_IN' && profile?.role === 'owner' && profile?.family_id) {
           const alreadyHasEventTypes = await hasEventTypes(profile.family_id);
           if (!alreadyHasEventTypes) {
@@ -136,37 +132,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     });
 
-    // Check for existing session with timeout for PWA
+    authSubscription = subscription;
+
+    // Timeout for PWA standalone mode where session check may hang
     const sessionTimeout = setTimeout(() => {
-      const state = get();
-      if (state.loading && !state.user) {
+      const currentState = get();
+      if (currentState.loading && !currentState.user) {
         console.log('[auth] Session check timed out, showing login');
         set({ loading: false });
       }
     }, 3000);
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Cleanup function
+    return () => {
+      console.log('[auth] Cleaning up auth subscription');
       clearTimeout(sessionTimeout);
-      const state = get();
-
-      // Skip if signIn already set the state
-      if (state.user) {
-        console.log('[auth] getSession: user already set, skipping');
-        return;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+        authSubscription = null;
       }
-
-      if (session?.user) {
-        const profile = await loadProfile(session.user.id);
-        set({ user: session.user, profile, loading: false });
-      } else {
-        set({ loading: false });
-      }
-    }).catch((err) => {
-      clearTimeout(sessionTimeout);
-      console.error('[auth] getSession error:', err);
-      set({ loading: false });
-    });
+      set({ initialized: false });
+    };
   },
 }));
-
-useAuthStore.getState().initialize();

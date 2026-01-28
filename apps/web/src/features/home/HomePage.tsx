@@ -53,23 +53,29 @@ export function HomePage() {
       setLoading(false);
     }
     loadEventTypes();
-  }, [profile]);
+  }, [profile, isAdmin, loadChildren, loadBalance, loadEventTypes]);
 
   useEffect(() => {
     if (currentChildId) {
       loadEvents(currentChildId, selectedDate);
       loadBalance(currentChildId);
     }
-  }, [currentChildId, selectedDate]);
+  }, [currentChildId, selectedDate, loadEvents, loadBalance]);
 
-  const loadChildren = async () => {
+  const loadChildren = useCallback(async () => {
     if (!profile || !profile.family_id) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('family_id', profile.family_id)
       .eq('role', 'child')
       .order('name');
+
+    if (error) {
+      console.error('[HomePage] Failed to load children:', error.message);
+      setLoading(false);
+      return;
+    }
 
     if (data) {
       setChildren(data);
@@ -82,44 +88,59 @@ export function HomePage() {
       }
     }
     setLoading(false);
-  };
+  }, [profile, selectedChildId, setSelectedChildId]);
 
-  const loadEventTypes = async () => {
+  const loadEventTypes = useCallback(async () => {
     if (!profile || !profile.family_id) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('event_types')
       .select('*')
       .eq('family_id', profile.family_id)
       .order('sort_order');
 
+    if (error) {
+      console.error('[HomePage] Failed to load event types:', error.message);
+      return;
+    }
+
     if (data) {
       setEventTypes(data);
     }
-  };
+  }, [profile]);
 
-  const loadEvents = async (childId: string, date: string) => {
-    const { data } = await supabase
+  const loadEvents = useCallback(async (childId: string, date: string) => {
+    const { data, error } = await supabase
       .from('events')
       .select('*')
       .eq('child_id', childId)
       .eq('date', date)
       .order('created_at', { ascending: false });
 
+    if (error) {
+      console.error('[HomePage] Failed to load events:', error.message);
+      return;
+    }
+
     if (data) {
       setEvents(data);
     }
-  };
+  }, []);
 
-  const loadBalance = async (childId: string) => {
-    const { data } = await supabase.rpc('get_child_balance', {
+  const loadBalance = useCallback(async (childId: string) => {
+    const { data, error } = await supabase.rpc('get_child_balance', {
       p_child_id: childId,
     });
+
+    if (error) {
+      console.error('[HomePage] Failed to load balance:', error.message);
+      return;
+    }
 
     if (data !== null) {
       setBalance(data);
     }
-  };
+  }, []);
 
   const getEventTypeName = (event: Event): string => {
     if (event.custom_name) return event.custom_name;
