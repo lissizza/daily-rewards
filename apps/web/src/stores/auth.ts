@@ -11,10 +11,21 @@ interface AuthState {
   signIn: (emailOrLogin: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
-  initialize: () => Promise<void>;
+  initialize: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+async function loadProfile(userId: string): Promise<Profile | null> {
+  console.log('[auth] Loading profile for user:', userId);
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  console.log('[auth] Profile loaded:', data, 'Error:', error);
+  return data;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   profile: null,
   loading: true,
@@ -33,7 +44,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
         if (authResult.error) throw authResult.error;
       } else {
-        // Use security definer function to get email by login (bypasses RLS)
         const { data: email, error: lookupError } = await supabase
           .rpc('get_email_by_login', { p_login: emailOrLogin });
 
@@ -48,14 +58,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (authResult.error) throw authResult.error;
       }
 
-      // Manually load profile after successful login
+      // Load profile after successful login
+      console.log('[auth] Sign in successful, user:', authResult.data.user?.id);
       if (authResult.data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authResult.data.user.id)
-          .single();
-
+        const profile = await loadProfile(authResult.data.user.id);
+        console.log('[auth] Setting state with profile:', profile);
         set({ user: authResult.data.user, profile, loading: false });
       }
     } catch (error) {
@@ -80,36 +87,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, profile: null });
   },
 
-  initialize: async () => {
-    // Set up auth state listener first
+  initialize: () => {
+    // Listen for auth changes
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
+        const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
 
-        // Seed default event types for new owner users only
-        // Conditions:
-        // 1. Must be a SIGNED_IN event (new login, not token refresh)
-        // 2. Must be an owner role (family creator)
-        // 3. Must have a family_id
-        // 4. Family must not already have event types (prevents duplicate seeding)
-        const isNewOwner = event === 'SIGNED_IN'
-          && profile?.role === 'owner'
-          && profile?.family_id;
-
-        if (isNewOwner) {
+        // Seed default event types for new owner
+        if (event === 'SIGNED_IN' && profile?.role === 'owner' && profile?.family_id) {
           const alreadyHasEventTypes = await hasEventTypes(profile.family_id);
           if (!alreadyHasEventTypes) {
-            console.log('[auth] New owner detected, seeding default event types for family...');
-            const result = await seedDefaultEventTypes(profile.family_id);
-            if (!result.success) {
-              console.error('[auth] Failed to seed default event types:', result.error);
-            }
+            await seedDefaultEventTypes(profile.family_id);
           }
         }
       } else {
@@ -117,34 +106,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     });
 
-    // Then try to get existing session with timeout
-    try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Session timeout')), 5000)
-      );
-
-      const sessionPromise = supabase.auth.getSession();
-
-      const { data: { session } } = await Promise.race([
-        sessionPromise,
-        timeoutPromise,
-      ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
-
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
+        const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
       } else {
         set({ loading: false });
       }
-    } catch (error) {
-      console.error('[auth] Failed to get session:', error);
+    }).catch(() => {
       set({ loading: false });
-    }
+    });
   },
 }));
 
