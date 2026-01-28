@@ -106,8 +106,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
     });
 
-    // Check for existing session
+    // Check for existing session with timeout for PWA
+    const sessionTimeout = setTimeout(() => {
+      console.log('[auth] Session check timed out, showing login');
+      set({ loading: false });
+    }, 3000);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(sessionTimeout);
       if (session?.user) {
         const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
@@ -115,6 +121,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ loading: false });
       }
     }).catch(() => {
+      clearTimeout(sessionTimeout);
       set({ loading: false });
     });
   },
