@@ -101,29 +101,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ initialized: true });
     console.log('[auth] Initializing auth store');
 
-    // Single source of truth: onAuthStateChange handles ALL auth state changes
+    // Handle auth state changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[auth] onAuthStateChange:', event, session?.user?.id);
 
-      if (event === 'SIGNED_OUT' || !session) {
+      if (event === 'SIGNED_OUT') {
         set({ user: null, profile: null, loading: false });
         return;
       }
 
-      if (event === 'TOKEN_REFRESHED') {
+      if (event === 'TOKEN_REFRESHED' && session?.user) {
         // Just update user token, keep profile
         set({ user: session.user });
         return;
       }
 
-      // For INITIAL_SESSION, SIGNED_IN, or USER_UPDATED
-      if (session?.user) {
+      // For SIGNED_IN or USER_UPDATED (not INITIAL_SESSION - we handle that separately)
+      if (event === 'SIGNED_IN' && session?.user) {
         set({ loading: true });
         const profile = await loadProfile(session.user.id);
         set({ user: session.user, profile, loading: false });
 
         // Seed default event types for new owner on first sign in
-        if (event === 'SIGNED_IN' && profile?.role === 'owner' && profile?.family_id) {
+        if (profile?.role === 'owner' && profile?.family_id) {
           const alreadyHasEventTypes = await hasEventTypes(profile.family_id);
           if (!alreadyHasEventTypes) {
             await seedDefaultEventTypes(profile.family_id);
@@ -142,6 +142,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ loading: false });
       }
     }, 3000);
+
+    // Check for existing session on init
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      console.log('[auth] getSession:', session?.user?.id, error?.message);
+      clearTimeout(sessionTimeout);
+
+      if (error || !session?.user) {
+        set({ user: null, profile: null, loading: false });
+        return;
+      }
+
+      const profile = await loadProfile(session.user.id);
+      set({ user: session.user, profile, loading: false });
+    });
 
     // Cleanup function
     return () => {
