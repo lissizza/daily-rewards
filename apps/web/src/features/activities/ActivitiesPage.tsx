@@ -6,10 +6,12 @@ import { cn } from '@/lib/utils';
 import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
 import { EditablePoints } from '@/components/EditablePoints';
 import { EditableText } from '@/components/EditableText';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { EventType } from '@/types/database';
 
 export function ActivitiesPage() {
   const { profile } = useAuthStore();
+  const t = useTranslation();
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -289,7 +291,7 @@ export function ActivitiesPage() {
         <button
           onClick={() => setEditingIconTypeId(editingIconTypeId === type.id ? null : type.id)}
           className="shrink-0 text-lg hover:scale-125 transition-transform rounded p-1 hover:bg-accent"
-          title="Изменить иконку"
+          title={t.activities.changeIcon}
         >
           {type.icon}
         </button>
@@ -344,11 +346,11 @@ export function ActivitiesPage() {
   return (
     <div className="flex flex-col p-4">
       <ErrorToast message={error} onClose={clearError} />
-      <h1 className="mb-6 text-xl font-bold">Активности</h1>
+      <h1 className="mb-6 text-xl font-bold">{t.activities.title}</h1>
 
       {/* Income types section */}
       <section className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold text-green-600">Доход</h2>
+        <h2 className="mb-3 text-lg font-semibold text-green-600">{t.activities.income}</h2>
         <div className="space-y-2">
           {incomeTypes.map(renderEventTypeRow)}
         </div>
@@ -374,7 +376,7 @@ export function ActivitiesPage() {
                 type="text"
                 value={newEventName}
                 onChange={(e) => setNewEventName(e.target.value)}
-                placeholder="Название"
+                placeholder={t.activities.name}
                 className="flex-1 rounded-md border border-input bg-background px-3 py-2"
                 required
               />
@@ -398,14 +400,14 @@ export function ActivitiesPage() {
                 }}
                 className="flex-1 rounded-md border px-4 py-2"
               >
-                Отмена
+                {t.activities.cancel}
               </button>
               <button
                 type="submit"
                 disabled={loading || !newEventName.trim()}
                 className="flex-1 rounded-md bg-green-600 px-4 py-2 text-white disabled:opacity-50"
               >
-                {loading ? 'Добавление...' : 'Добавить'}
+                {loading ? t.activities.adding : t.activities.add}
               </button>
             </div>
           </form>
@@ -415,14 +417,14 @@ export function ActivitiesPage() {
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-green-500 p-3 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
           >
             <Plus className="h-4 w-4" />
-            Добавить доход
+            {t.activities.addIncome}
           </button>
         )}
       </section>
 
       {/* Expense types section */}
       <section className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold text-destructive">Расход</h2>
+        <h2 className="mb-3 text-lg font-semibold text-destructive">{t.activities.expense}</h2>
         <div className="space-y-2">
           {expenseTypes.map(renderEventTypeRow)}
         </div>
@@ -448,7 +450,7 @@ export function ActivitiesPage() {
                 type="text"
                 value={newEventName}
                 onChange={(e) => setNewEventName(e.target.value)}
-                placeholder="Название"
+                placeholder={t.activities.name}
                 className="flex-1 rounded-md border border-input bg-background px-3 py-2"
                 required
               />
@@ -472,14 +474,14 @@ export function ActivitiesPage() {
                 }}
                 className="flex-1 rounded-md border px-4 py-2"
               >
-                Отмена
+                {t.activities.cancel}
               </button>
               <button
                 type="submit"
                 disabled={loading || !newEventName.trim()}
                 className="flex-1 rounded-md bg-destructive px-4 py-2 text-destructive-foreground disabled:opacity-50"
               >
-                {loading ? 'Добавление...' : 'Добавить'}
+                {loading ? t.activities.adding : t.activities.add}
               </button>
             </div>
           </form>
@@ -489,7 +491,7 @@ export function ActivitiesPage() {
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-destructive p-3 text-destructive hover:bg-red-50 dark:hover:bg-red-950"
           >
             <Plus className="h-4 w-4" />
-            Добавить расход
+            {t.activities.addExpense}
           </button>
         )}
       </section>
@@ -502,9 +504,9 @@ export function ActivitiesPage() {
             onClick={() => setDeletingEventType(null)}
           />
           <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-background p-4">
-            <h2 className="mb-2 text-lg font-semibold">Удалить категорию?</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t.activities.deleteCategory}</h2>
             <p className="mb-4 text-muted-foreground">
-              Вы уверены, что хотите удалить &quot;{deletingEventType.name}&quot;? Это действие нельзя отменить.
+              {t.activities.deleteConfirm} &quot;{deletingEventType.name}&quot;? {t.activities.cannotUndo}
             </p>
             <div className="flex gap-3">
               <button
@@ -512,7 +514,7 @@ export function ActivitiesPage() {
                 onClick={() => setDeletingEventType(null)}
                 className="flex-1 rounded-md border px-4 py-3 font-medium"
               >
-                Отмена
+                {t.activities.cancel}
               </button>
               <button
                 type="button"
@@ -520,7 +522,7 @@ export function ActivitiesPage() {
                 disabled={loading}
                 className="flex-1 rounded-md bg-destructive px-4 py-3 font-medium text-destructive-foreground disabled:opacity-50"
               >
-                {loading ? 'Удаление...' : 'Удалить'}
+                {loading ? t.activities.deleting : t.activities.delete}
               </button>
             </div>
           </div>

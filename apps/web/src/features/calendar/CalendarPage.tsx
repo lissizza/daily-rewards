@@ -3,8 +3,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/stores/app';
 import { useAuthStore } from '@/stores/auth';
+import { useLanguageStore } from '@/stores/language';
 import { supabase } from '@/lib/supabase';
 import { cn, formatPoints } from '@/lib/utils';
+import { useTranslation } from '@/i18n/useTranslation';
 import type { Event, EventType } from '@/types/database';
 import {
   startOfMonth,
@@ -21,7 +23,7 @@ import {
   subWeeks,
   getWeek,
 } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 
 type ViewMode = 'month' | 'week';
 
@@ -34,7 +36,9 @@ interface DayData {
 export function CalendarPage() {
   const { selectedDate, setSelectedDate, selectedChildId } = useAppStore();
   const { profile } = useAuthStore();
+  const { language } = useLanguageStore();
   const navigate = useNavigate();
+  const t = useTranslation();
 
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
@@ -47,6 +51,7 @@ export function CalendarPage() {
 
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
+  const dateLocale = language === 'ru' ? ru : enUS;
 
   // Load event types
   useEffect(() => {
@@ -99,8 +104,8 @@ export function CalendarPage() {
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
   const monthDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  const weekDaysFull = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  const weekDays = t.calendar.weekDays;
+  const weekDaysFull = t.calendar.weekDays;
 
   // Week view calculations
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
@@ -167,7 +172,7 @@ export function CalendarPage() {
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            Месяц
+            {t.calendar.month}
           </button>
           <button
             onClick={() => setViewMode('week')}
@@ -178,7 +183,7 @@ export function CalendarPage() {
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            Неделя
+            {t.calendar.week}
           </button>
         </div>
       </div>
@@ -196,7 +201,7 @@ export function CalendarPage() {
             </button>
 
             <h2 className="text-lg font-semibold capitalize">
-              {format(currentMonth, 'LLLL yyyy', { locale: ru })}
+              {format(currentMonth, 'LLLL yyyy', { locale: dateLocale })}
             </h2>
 
             <button
@@ -256,7 +261,7 @@ export function CalendarPage() {
             </button>
 
             <h2 className="text-lg font-semibold">
-              Неделя {weekNumber}, {format(currentWeekStart, 'LLLL yyyy', { locale: ru })}
+              {t.calendar.weekNumber} {weekNumber}, {format(currentWeekStart, 'LLLL yyyy', { locale: dateLocale })}
             </h2>
 
             <button
