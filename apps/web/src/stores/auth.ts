@@ -24,12 +24,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const isEmail = emailOrLogin.includes('@');
 
     try {
+      let authResult;
+
       if (isEmail) {
-        const { error } = await supabase.auth.signInWithPassword({
+        authResult = await supabase.auth.signInWithPassword({
           email: emailOrLogin,
           password,
         });
-        if (error) throw error;
+        if (authResult.error) throw authResult.error;
       } else {
         // Use security definer function to get email by login (bypasses RLS)
         const { data: email, error: lookupError } = await supabase
@@ -39,11 +41,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           throw new Error('Пользователь не найден');
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        authResult = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        if (authResult.error) throw authResult.error;
+      }
+
+      // Manually load profile after successful login
+      if (authResult.data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authResult.data.user.id)
+          .single();
+
+        set({ user: authResult.data.user, profile, loading: false });
       }
     } catch (error) {
       set({ loading: false });
