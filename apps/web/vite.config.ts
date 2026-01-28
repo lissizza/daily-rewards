@@ -11,7 +11,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'Daily Rewards',
-        short_name: 'Rewards',
+        short_name: 'Daily Rewards',
         description: 'Track bonus points for children',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
