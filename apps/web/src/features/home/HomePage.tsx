@@ -42,26 +42,6 @@ export function HomePage() {
     t.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  useEffect(() => {
-    if (!profile) return;
-
-    if (isAdmin) {
-      loadChildren();
-    } else {
-      // Child user - load their own balance and set loading to false
-      loadBalance(profile.id);
-      setLoading(false);
-    }
-    loadEventTypes();
-  }, [profile, isAdmin, loadChildren, loadBalance, loadEventTypes]);
-
-  useEffect(() => {
-    if (currentChildId) {
-      loadEvents(currentChildId, selectedDate);
-      loadBalance(currentChildId);
-    }
-  }, [currentChildId, selectedDate, loadEvents, loadBalance]);
-
   const loadChildren = useCallback(async () => {
     if (!profile || !profile.family_id) return;
     const { data, error } = await supabase
@@ -142,6 +122,28 @@ export function HomePage() {
     }
   }, []);
 
+  // Load initial data when profile changes
+  useEffect(() => {
+    if (!profile) return;
+
+    if (isAdmin) {
+      loadChildren();
+    } else {
+      // Child user - load their own balance and set loading to false
+      loadBalance(profile.id);
+      setLoading(false);
+    }
+    loadEventTypes();
+  }, [profile, isAdmin, loadChildren, loadBalance, loadEventTypes]);
+
+  // Load events and balance when child or date changes
+  useEffect(() => {
+    if (currentChildId) {
+      loadEvents(currentChildId, selectedDate);
+      loadBalance(currentChildId);
+    }
+  }, [currentChildId, selectedDate, loadEvents, loadBalance]);
+
   const getEventTypeName = (event: Event): string => {
     if (event.custom_name) return event.custom_name;
     const type = eventTypes.find((t) => t.id === event.event_type_id);
@@ -158,7 +160,7 @@ export function HomePage() {
       loadEvents(currentChildId, selectedDate);
       loadBalance(currentChildId);
     }
-  }, [currentChildId, selectedDate]);
+  }, [currentChildId, selectedDate, loadEvents, loadBalance]);
 
   // Quick add event
   const handleQuickAdd = useCallback(
