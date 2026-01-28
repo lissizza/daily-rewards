@@ -71,7 +71,12 @@ export function LoginPage() {
       </button>
 
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
+          <img
+            src="/pwa-192x192.png"
+            alt="Daily Rewards"
+            className="mb-4 h-24 w-24"
+          />
           <h1 className="text-2xl font-bold">{t.login.title}</h1>
           <p className="text-muted-foreground">
             {isSignUp ? t.login.signUp : t.login.signIn}
