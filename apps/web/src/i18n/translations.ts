@@ -104,6 +104,8 @@ export const translations = {
       loading: 'Загрузка...',
       error: 'Ошибка',
       success: 'Успешно',
+      updateAvailable: 'Доступно обновление',
+      update: 'Обновить',
     },
   },
   en: {
@@ -211,6 +213,8 @@ export const translations = {
       loading: 'Loading...',
       error: 'Error',
       success: 'Success',
+      updateAvailable: 'Update available',
+      update: 'Update',
     },
   },
 } as const;

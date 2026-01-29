@@ -7,6 +7,7 @@ import { CalendarPage } from '@/features/calendar/CalendarPage';
 import { ActivitiesPage } from '@/features/activities/ActivitiesPage';
 import { FamilyPage } from '@/features/family/FamilyPage';
 import { Layout } from '@/components/Layout';
+import { UpdatePrompt } from '@/components/UpdatePrompt';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const initialize = useAuthStore((state) => state.initialize);
@@ -60,6 +61,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 export function App() {
   return (
     <AuthInitializer>
+      <UpdatePrompt />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
