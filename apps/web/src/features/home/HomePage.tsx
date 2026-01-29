@@ -341,14 +341,17 @@ export function HomePage() {
           </p>
         ) : (
           <div className="space-y-2">
-            {events.map((event) => (
+            {events.map((event) => {
+              const eventType = eventTypes.find((t) => t.id === event.event_type_id);
+              const isDeduction = eventType?.is_deduction ?? event.points < 0;
+              return (
               <div
                 key={event.id}
                 className={cn(
                   'rounded-lg border p-3',
-                  event.points >= 0
-                    ? 'bg-green-50 dark:bg-green-950/30'
-                    : 'bg-red-50 dark:bg-red-950/30'
+                  isDeduction
+                    ? 'bg-red-50 dark:bg-red-950/30'
+                    : 'bg-green-50 dark:bg-green-950/30'
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -361,7 +364,7 @@ export function HomePage() {
                       <>
                         <EditablePoints
                           value={event.points}
-                          isDeduction={event.points < 0}
+                          isDeduction={isDeduction}
                           onSave={(newValue) =>
                             handleUpdateEventPoints(event.id, newValue)
                           }
@@ -377,10 +380,10 @@ export function HomePage() {
                       <span
                         className={cn(
                           'font-semibold',
-                          event.points >= 0 ? 'text-green-600' : 'text-destructive'
+                          isDeduction ? 'text-destructive' : 'text-green-600'
                         )}
                       >
-                        {event.points >= 0 ? '+' : ''}
+                        {isDeduction ? '' : '+'}
                         {event.points}
                       </span>
                     )}
@@ -402,7 +405,8 @@ export function HomePage() {
                   )
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

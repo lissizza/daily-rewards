@@ -79,9 +79,11 @@ export function ActivitiesPage() {
 
   const handleUpdateEventTypePoints = useCallback(
     async (typeId: string, newPoints: number) => {
+      // Always store positive value - sign is determined by is_deduction flag
+      const absPoints = Math.abs(newPoints);
       const { error } = await supabase
         .from('event_types')
-        .update({ default_points: newPoints })
+        .update({ default_points: absPoints })
         .eq('id', typeId);
 
       if (error) {
@@ -90,7 +92,7 @@ export function ActivitiesPage() {
       }
 
       setEventTypes((prev) =>
-        prev.map((t) => (t.id === typeId ? { ...t, default_points: newPoints } : t))
+        prev.map((t) => (t.id === typeId ? { ...t, default_points: absPoints } : t))
       );
     },
     []
