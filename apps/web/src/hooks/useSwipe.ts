@@ -1,10 +1,4 @@
-import { useRef, useCallback } from 'react';
-
-interface SwipeHandlers {
-  onTouchStart: (e: React.TouchEvent) => void;
-  onTouchMove: (e: React.TouchEvent) => void;
-  onTouchEnd: (e: React.TouchEvent) => void;
-}
+import { useRef, useCallback, useEffect, RefObject } from 'react';
 
 interface UseSwipeOptions {
   onSwipeLeft?: () => void;
@@ -12,39 +6,39 @@ interface UseSwipeOptions {
   minSwipeDistance?: number;
 }
 
-export function useSwipe({
-  onSwipeLeft,
-  onSwipeRight,
-  minSwipeDistance = 50,
-}: UseSwipeOptions): SwipeHandlers {
+export function useSwipe<T extends HTMLElement>(
+  ref: RefObject<T>,
+  { onSwipeLeft, onSwipeRight, minSwipeDistance = 50 }: UseSwipeOptions
+): void {
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const isHorizontalSwipe = useRef<boolean | null>(null);
 
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStart.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStart.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+      isHorizontalSwipe.current = null;
     };
-    isHorizontalSwipe.current = null;
-  }, []);
 
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current || isHorizontalSwipe.current !== null) return;
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchStart.current || isHorizontalSwipe.current !== null) return;
 
-    const deltaX = Math.abs(e.touches[0].clientX - touchStart.current.x);
-    const deltaY = Math.abs(e.touches[0].clientY - touchStart.current.y);
+      const deltaX = Math.abs(e.touches[0].clientX - touchStart.current.x);
+      const deltaY = Math.abs(e.touches[0].clientY - touchStart.current.y);
 
-    // Determine swipe direction after some movement
-    if (deltaX > 10 || deltaY > 10) {
-      isHorizontalSwipe.current = deltaX > deltaY;
-    }
-  }, []);
+      if (deltaX > 10 || deltaY > 10) {
+        isHorizontalSwipe.current = deltaX > deltaY;
+      }
+    };
 
-  const onTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
+    const handleTouchEnd = (e: TouchEvent) => {
       if (!touchStart.current) return;
 
-      // Only handle horizontal swipes
       if (isHorizontalSwipe.current !== true) {
         touchStart.current = null;
         isHorizontalSwipe.current = null;
@@ -64,9 +58,17 @@ export function useSwipe({
 
       touchStart.current = null;
       isHorizontalSwipe.current = null;
-    },
-    [onSwipeLeft, onSwipeRight, minSwipeDistance]
-  );
+    };
 
-  return { onTouchStart, onTouchMove, onTouchEnd };
+    // Use capture phase to get events before children
+    element.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
+    element.addEventListener('touchmove', handleTouchMove, { capture: true, passive: true });
+    element.addEventListener('touchend', handleTouchEnd, { capture: true, passive: true });
+
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      element.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      element.removeEventListener('touchend', handleTouchEnd, { capture: true });
+    };
+  }, [ref, onSwipeLeft, onSwipeRight, minSwipeDistance]);
 }

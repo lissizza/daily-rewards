@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/stores/app';
@@ -40,6 +40,7 @@ export function CalendarPage() {
   const { language } = useLanguageStore();
   const navigate = useNavigate();
   const t = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
@@ -175,17 +176,15 @@ export function CalendarPage() {
     }
   }, [viewMode, handlePrevMonth, handlePrevWeek]);
 
-  const swipeHandlers = useSwipe({
+  useSwipe(containerRef, {
     onSwipeLeft: handleSwipeLeft,
     onSwipeRight: handleSwipeRight,
   });
 
   return (
     <div
+      ref={containerRef}
       className="flex flex-col p-4"
-      onTouchStart={swipeHandlers.onTouchStart}
-      onTouchMove={swipeHandlers.onTouchMove}
-      onTouchEnd={swipeHandlers.onTouchEnd}
     >
       {/* View toggle */}
       <div className="mb-4 flex justify-center">

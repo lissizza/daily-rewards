@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Minus, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
@@ -15,6 +15,7 @@ import type { Profile, Event, EventType } from '@/types/database';
 export function HomePage() {
   const { profile } = useAuthStore();
   const { selectedDate, selectedChildId, setSelectedChildId, goToNextDay, goToPrevDay } = useAppStore();
+  const containerRef = useRef<HTMLDivElement>(null);
   const { language } = useLanguageStore();
   const navigate = useNavigate();
   const t = useTranslation();
@@ -251,7 +252,7 @@ export function HomePage() {
 
   const currentChild = children.find((c) => c.id === selectedChildId);
 
-  const swipeHandlers = useSwipe({
+  useSwipe(containerRef, {
     onSwipeLeft: goToNextDay,
     onSwipeRight: goToPrevDay,
   });
@@ -280,10 +281,8 @@ export function HomePage() {
 
   return (
     <div
-      className="flex min-h-full flex-col touch-pan-y"
-      onTouchStart={swipeHandlers.onTouchStart}
-      onTouchMove={swipeHandlers.onTouchMove}
-      onTouchEnd={swipeHandlers.onTouchEnd}
+      ref={containerRef}
+      className="flex min-h-full flex-col"
     >
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background p-4">
