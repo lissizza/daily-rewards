@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/stores/app';
@@ -7,6 +7,7 @@ import { useLanguageStore } from '@/stores/language';
 import { supabase } from '@/lib/supabase';
 import { cn, formatPoints } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useSwipe } from '@/hooks/useSwipe';
 import type { Event, EventType } from '@/types/database';
 import {
   startOfMonth,
@@ -142,24 +143,49 @@ export function CalendarPage() {
     navigate('/');
   };
 
-  const handlePrevMonth = () => {
+  const handlePrevMonth = useCallback(() => {
     setCurrentMonth(subMonths(currentMonth, 1));
-  };
+  }, [currentMonth]);
 
-  const handleNextMonth = () => {
+  const handleNextMonth = useCallback(() => {
     setCurrentMonth(addMonths(currentMonth, 1));
-  };
+  }, [currentMonth]);
 
-  const handlePrevWeek = () => {
+  const handlePrevWeek = useCallback(() => {
     setCurrentWeekStart(subWeeks(currentWeekStart, 1));
-  };
+  }, [currentWeekStart]);
 
-  const handleNextWeek = () => {
+  const handleNextWeek = useCallback(() => {
     setCurrentWeekStart(addWeeks(currentWeekStart, 1));
-  };
+  }, [currentWeekStart]);
+
+  const handleSwipeLeft = useCallback(() => {
+    if (viewMode === 'month') {
+      handleNextMonth();
+    } else {
+      handleNextWeek();
+    }
+  }, [viewMode, handleNextMonth, handleNextWeek]);
+
+  const handleSwipeRight = useCallback(() => {
+    if (viewMode === 'month') {
+      handlePrevMonth();
+    } else {
+      handlePrevWeek();
+    }
+  }, [viewMode, handlePrevMonth, handlePrevWeek]);
+
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+  });
 
   return (
-    <div className="flex flex-col p-4">
+    <div
+      className="flex flex-col p-4"
+      onTouchStart={swipeHandlers.onTouchStart}
+      onTouchEnd={swipeHandlers.onTouchEnd}
+    >
       {/* View toggle */}
       <div className="mb-4 flex justify-center">
         <div className="inline-flex rounded-lg border bg-muted p-1">

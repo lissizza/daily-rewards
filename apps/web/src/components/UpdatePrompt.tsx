@@ -2,12 +2,30 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
 
+const UPDATE_INTERVAL = 60 * 60 * 1000; // 1 hour
+
 export function UpdatePrompt() {
   const t = useTranslation();
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
-  } = useRegisterSW();
+  } = useRegisterSW({
+    onRegisteredSW(swUrl, registration) {
+      if (!registration) return;
+
+      // Check for updates periodically
+      setInterval(() => {
+        registration.update();
+      }, UPDATE_INTERVAL);
+
+      // Check for updates when app becomes visible
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          registration.update();
+        }
+      });
+    },
+  });
 
   if (!needRefresh) return null;
 

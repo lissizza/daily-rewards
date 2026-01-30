@@ -9,6 +9,7 @@ import { formatDate, cn } from '@/lib/utils';
 import { EditablePoints } from '@/components/EditablePoints';
 import { EditableText } from '@/components/EditableText';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useSwipe } from '@/hooks/useSwipe';
 import type { Profile, Event, EventType } from '@/types/database';
 
 export function HomePage() {
@@ -250,6 +251,11 @@ export function HomePage() {
 
   const currentChild = children.find((c) => c.id === selectedChildId);
 
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: goToNextDay,
+    onSwipeRight: goToPrevDay,
+  });
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -273,7 +279,11 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex flex-col">
+    <div
+      className="flex flex-col"
+      onTouchStart={swipeHandlers.onTouchStart}
+      onTouchEnd={swipeHandlers.onTouchEnd}
+    >
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background p-4">
         <div className="flex items-center justify-between">
