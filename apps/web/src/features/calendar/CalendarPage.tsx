@@ -184,6 +184,7 @@ export function CalendarPage() {
     <div
       className="flex flex-col p-4"
       onTouchStart={swipeHandlers.onTouchStart}
+      onTouchMove={swipeHandlers.onTouchMove}
       onTouchEnd={swipeHandlers.onTouchEnd}
     >
       {/* View toggle */}

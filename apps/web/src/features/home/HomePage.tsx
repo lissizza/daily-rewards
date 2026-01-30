@@ -280,8 +280,9 @@ export function HomePage() {
 
   return (
     <div
-      className="flex flex-col"
+      className="flex min-h-full flex-col touch-pan-y"
       onTouchStart={swipeHandlers.onTouchStart}
+      onTouchMove={swipeHandlers.onTouchMove}
       onTouchEnd={swipeHandlers.onTouchEnd}
     >
       {/* Header */}
