@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Minus, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
@@ -15,7 +15,6 @@ import type { Profile, Event, EventType } from '@/types/database';
 export function HomePage() {
   const { profile } = useAuthStore();
   const { selectedDate, selectedChildId, setSelectedChildId, goToNextDay, goToPrevDay } = useAppStore();
-  const containerRef = useRef<HTMLDivElement>(null);
   const { language } = useLanguageStore();
   const navigate = useNavigate();
   const t = useTranslation();
@@ -252,36 +251,40 @@ export function HomePage() {
 
   const currentChild = children.find((c) => c.id === selectedChildId);
 
-  useSwipe(containerRef, {
+  const swipeRef = useSwipe({
     onSwipeLeft: goToNextDay,
     onSwipeRight: goToPrevDay,
   });
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div ref={swipeRef} className="flex min-h-full flex-col">
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
       </div>
     );
   }
 
   if (isAdmin && children.length === 0) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-4 p-4 text-center">
-        <p className="text-muted-foreground">{t.home.addChildPrompt}</p>
-        <button
-          onClick={() => navigate('/family')}
-          className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
-        >
-          {t.home.goToSettings}
-        </button>
+      <div ref={swipeRef} className="flex min-h-full flex-col">
+        <div className="flex h-64 flex-col items-center justify-center gap-4 p-4 text-center">
+          <p className="text-muted-foreground">{t.home.addChildPrompt}</p>
+          <button
+            onClick={() => navigate('/family')}
+            className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+          >
+            {t.home.goToSettings}
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div
-      ref={containerRef}
+      ref={swipeRef}
       className="flex min-h-full flex-col"
     >
       {/* Header */}
