@@ -18,6 +18,12 @@ export const translations = {
       addNote: 'Добавить заметку...',
       addChildPrompt: 'Добавьте ребёнка в настройках',
       goToSettings: 'Перейти в настройки',
+      pending: 'Ожидание',
+      rejected: 'Отклонено',
+      approve: 'Одобрить',
+      reject: 'Отклонить',
+      requestReward: 'Запросить',
+      requestDeduction: 'Списание',
     },
     // Calendar page
     calendar: {
@@ -127,6 +133,12 @@ export const translations = {
       addNote: 'Add note...',
       addChildPrompt: 'Add a child in settings',
       goToSettings: 'Go to settings',
+      pending: 'Pending',
+      rejected: 'Rejected',
+      approve: 'Approve',
+      reject: 'Reject',
+      requestReward: 'Request',
+      requestDeduction: 'Deduction',
     },
     // Calendar page
     calendar: {

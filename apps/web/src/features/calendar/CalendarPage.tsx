@@ -85,6 +85,7 @@ export function CalendarPage() {
         .from('events')
         .select('*')
         .eq('child_id', currentChildId)
+        .eq('status', 'approved')
         .gte('date', format(currentWeekStart, 'yyyy-MM-dd'))
         .lte('date', format(weekEnd, 'yyyy-MM-dd'))
         .order('created_at');
@@ -183,7 +184,7 @@ export function CalendarPage() {
   return (
     <div
       ref={swipeRef}
-      className="flex flex-col p-4"
+      className="flex flex-1 flex-col p-4"
     >
       {/* View toggle */}
       <div className="mb-4 flex justify-center">

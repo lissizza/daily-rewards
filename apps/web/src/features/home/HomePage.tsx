@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Minus, Calendar, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Minus, Calendar, Trash2, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { useAppStore } from '@/stores/app';
@@ -106,7 +106,11 @@ export function HomePage() {
     }
 
     if (data) {
-      setEvents(data);
+      const statusOrder: Record<string, number> = { approved: 0, pending: 1, rejected: 2 };
+      const sorted = [...data].sort(
+        (a, b) => (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0)
+      );
+      setEvents(sorted);
     }
   }, []);
 
@@ -181,6 +185,7 @@ export function HomePage() {
         note: '',
         date: selectedDate,
         created_by: profile.id,
+        status: isAdmin ? 'approved' : 'pending',
       });
 
       if (!error) {
@@ -249,6 +254,34 @@ export function HomePage() {
     [currentChildId]
   );
 
+  const handleApproveEvent = useCallback(
+    async (eventId: string) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'approved' })
+        .eq('id', eventId);
+
+      if (!error) {
+        refreshData();
+      }
+    },
+    [refreshData]
+  );
+
+  const handleRejectEvent = useCallback(
+    async (eventId: string) => {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'rejected' })
+        .eq('id', eventId);
+
+      if (!error) {
+        refreshData();
+      }
+    },
+    [refreshData]
+  );
+
   const currentChild = children.find((c) => c.id === selectedChildId);
 
   const swipeRef = useSwipe({
@@ -258,7 +291,7 @@ export function HomePage() {
 
   if (loading) {
     return (
-      <div ref={swipeRef} className="flex min-h-full flex-col">
+      <div ref={swipeRef} className="flex flex-1 flex-col">
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -268,7 +301,7 @@ export function HomePage() {
 
   if (isAdmin && children.length === 0) {
     return (
-      <div ref={swipeRef} className="flex min-h-full flex-col">
+      <div ref={swipeRef} className="flex flex-1 flex-col">
         <div className="flex h-64 flex-col items-center justify-center gap-4 p-4 text-center">
           <p className="text-muted-foreground">{t.home.addChildPrompt}</p>
           <button
@@ -285,7 +318,7 @@ export function HomePage() {
   return (
     <div
       ref={swipeRef}
-      className="flex min-h-full flex-col"
+      className="flex flex-1 flex-col"
     >
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background p-4">
@@ -362,6 +395,8 @@ export function HomePage() {
                 key={event.id}
                 className={cn(
                   'rounded-lg border p-3',
+                  event.status === 'pending' && 'border-dashed opacity-70',
+                  event.status === 'rejected' && 'opacity-40',
                   isDeduction
                     ? 'bg-red-50 dark:bg-red-950/30'
                     : 'bg-green-50 dark:bg-green-950/30'
@@ -370,10 +405,38 @@ export function HomePage() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="shrink-0">{getEventTypeIcon(event)}</span>
-                    <span className="font-medium truncate">{getEventTypeName(event)}</span>
+                    <span className={cn('font-medium truncate', event.status === 'rejected' && 'line-through')}>{getEventTypeName(event)}</span>
+                    {event.status === 'pending' && (
+                      <span className="shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        {t.home.pending}
+                      </span>
+                    )}
+                    {event.status === 'rejected' && (
+                      <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                        {t.home.rejected}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {isAdmin ? (
+                    {isAdmin && event.status === 'pending' ? (
+                      <>
+                        <span className={cn('text-sm font-semibold', isDeduction ? 'text-destructive' : 'text-green-600')}>
+                          {isDeduction ? '' : '+'}{event.points}
+                        </span>
+                        <button
+                          onClick={() => handleApproveEvent(event.id)}
+                          className="rounded-md p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
+                        >
+                          <Check className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleRejectEvent(event.id)}
+                          className="rounded-md p-2 text-destructive hover:bg-destructive/10"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </>
+                    ) : isAdmin ? (
                       <>
                         <EditablePoints
                           value={event.points}
@@ -403,7 +466,7 @@ export function HomePage() {
                   </div>
                 </div>
                 {/* Note - editable for admin, readonly for child */}
-                {isAdmin ? (
+                {isAdmin && event.status !== 'pending' ? (
                   <EditableText
                     value={event.note}
                     onSave={(newNote) => handleUpdateEventNote(event.id, newNote)}
@@ -423,8 +486,8 @@ export function HomePage() {
           </div>
         )}
 
-        {/* Quick add buttons (admin only) */}
-        {isAdmin && currentChildId && (
+        {/* Quick add buttons */}
+        {currentChildId && (
           <div className="mt-4 flex gap-2">
             {/* Income button */}
             <div className="relative flex-1">
@@ -437,7 +500,7 @@ export function HomePage() {
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-green-500 p-3 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
               >
                 <Plus className="h-5 w-5" />
-                <span className="font-medium">{t.home.income}</span>
+                <span className="font-medium">{isAdmin ? t.home.income : t.home.requestReward}</span>
               </button>
 
               {/* Income dropdown */}
@@ -501,7 +564,7 @@ export function HomePage() {
                 className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-destructive p-3 text-destructive hover:bg-red-50 dark:hover:bg-red-950"
               >
                 <Minus className="h-5 w-5" />
-                <span className="font-medium">{t.home.expense}</span>
+                <span className="font-medium">{isAdmin ? t.home.expense : t.home.requestDeduction}</span>
               </button>
 
               {/* Expense dropdown */}

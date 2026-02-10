@@ -1,7 +1,9 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Home, Calendar, Sparkles, Users, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
 import { useTranslation } from '@/i18n/useTranslation';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 export function Layout() {
@@ -9,10 +11,37 @@ export function Layout() {
   const t = useTranslation();
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
 
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const loadPendingCount = useCallback(async () => {
+    if (!isAdmin) return;
+    const { data } = await supabase.rpc('get_pending_count');
+    if (data !== null) setPendingCount(data);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin || !profile) return;
+
+    loadPendingCount();
+
+    const channel = supabase
+      .channel('pending-events')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => { loadPendingCount(); }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, profile, loadPendingCount]);
+
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="flex-1 overflow-auto pb-16">
-        <div className="mx-auto max-w-md">
+      <main className="flex flex-1 flex-col overflow-auto pb-16">
+        <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
           <Outlet />
         </div>
       </main>
@@ -23,13 +52,18 @@ export function Layout() {
             to="/"
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center gap-1 px-3 py-2 text-xs',
+                'relative flex flex-col items-center gap-1 px-3 py-2 text-xs',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )
             }
           >
             <Home className="h-5 w-5" />
             <span>{t.nav.home}</span>
+            {isAdmin && pendingCount > 0 && (
+              <span className="absolute -right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                {pendingCount > 99 ? '99+' : pendingCount}
+              </span>
+            )}
           </NavLink>
 
           <NavLink

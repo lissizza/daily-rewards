@@ -110,6 +110,7 @@ export interface Database {
           date: string;
           created_by: string | null;
           created_at: string;
+          status: 'approved' | 'pending' | 'rejected';
         };
         Insert: {
           id?: string;
@@ -121,6 +122,7 @@ export interface Database {
           date: string;
           created_by?: string | null;
           created_at?: string;
+          status?: 'approved' | 'pending' | 'rejected';
         };
         Update: {
           id?: string;
@@ -132,6 +134,7 @@ export interface Database {
           date?: string;
           created_by?: string | null;
           created_at?: string;
+          status?: 'approved' | 'pending' | 'rejected';
         };
       };
     };
@@ -147,6 +150,10 @@ export interface Database {
       seed_default_event_types: {
         Args: { p_admin_id: string };
         Returns: void;
+      };
+      get_pending_count: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
   };
