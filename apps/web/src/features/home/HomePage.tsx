@@ -544,8 +544,8 @@ export function HomePage() {
                     )}
                   </div>
                 </div>
-                {/* Note - editable for admin, readonly for child */}
-                {isAdmin && event.status !== 'pending' ? (
+                {/* Note - editable for admin (approved/rejected) and child (pending) */}
+                {(isAdmin && event.status !== 'pending') || (!isAdmin && event.status === 'pending') ? (
                   <EditableText
                     value={event.note}
                     onSave={(newNote) => handleUpdateEventNote(event.id, newNote)}
