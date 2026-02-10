@@ -23,7 +23,7 @@ Family application for tracking children's bonus points. Parents (owner/admin) c
 |------|-------------|
 | **Owner** | Full access: create family, invite co-parent (admin), create children, manage events/types, delete family members |
 | **Admin** | Almost full access: create children, manage events/types. Cannot add other admins or delete owner |
-| **Child** | View own balance and event history only (read-only). Cannot see siblings |
+| **Child** | View own balance and history. Can request rewards/deductions (pending approval). Can edit points and notes on own pending requests. Cannot see siblings |
 
 ### Family Structure
 
@@ -77,6 +77,7 @@ Family application for tracking children's bonus points. Parents (owner/admin) c
 - `note`: string
 - `date`: date (YYYY-MM-DD)
 - `created_by`: UUID (FK → Profile, admin who created)
+- `status`: 'approved' | 'pending' | 'rejected' (default: 'approved')
 - `created_at`: timestamp
 
 ## Default Event Types
@@ -111,8 +112,14 @@ Family application for tracking children's bonus points. Parents (owner/admin) c
 - Date navigation (< date > with calendar button)
 - Events list for selected day
 - Color-coded cards: green for income, pink for expenses
-- Quick-add buttons: + Income / − Expense (admin only)
-- Editable points and notes (admin only)
+- Quick-add buttons: + Income / − Expense (admin: instant, child: pending approval)
+- Editable points and notes (admin on approved; child on own pending)
+- Event status badges: pending (yellow), rejected (red)
+- Approve/reject buttons for admins on pending events
+- Pending count badge on Home nav icon (admin)
+- Realtime sync between accounts (INSERT/UPDATE/DELETE)
+- Toast notifications for children on approve/reject
+- Swipe gestures for day navigation
 
 ### Calendar Features
 - Month view with navigation
@@ -200,7 +207,10 @@ daily_rewards/
 │       ├── 00003_fix_event_type_seeding.sql
 │       ├── 00004_family_structure.sql
 │       ├── 00005_security_fixes.sql
-│       └── 00006_restrict_child_profile_view.sql
+│       ├── 00006_restrict_child_profile_view.sql
+│       ├── ...
+│       ├── 00009_child_requests.sql
+│       └── 00010_child_realtime_and_edit.sql
 ├── spec.md                     # This file
 ├── tasks.md                    # Task tracking
 ├── CLAUDE.md                   # Instructions for Claude
@@ -224,7 +234,10 @@ daily_rewards/
 
 #### events
 - Owner/Admin can CRUD events for family children
-- Children can only read own events
+- Children can read own events
+- Children can insert events with status='pending' (requests)
+- Children can update own pending events (points, notes)
+- Supabase Realtime enabled (REPLICA IDENTITY FULL)
 
 ### Route Protection (Frontend)
 - `/activities` and `/family` routes protected by `AdminRoute` component
@@ -235,8 +248,11 @@ daily_rewards/
 - Must contain at least one letter and one number
 
 ### SQL Functions with Authorization
-- `get_child_balance(child_id)` - verifies family membership
+- `get_child_balance(child_id)` - verifies family membership, counts only approved events
 - `get_email_by_login(login)` - verifies family membership
+- `get_pending_count()` - counts pending events for admin's family
+- `get_my_role()` - returns current user's role
+- `get_my_family_id()` - returns current user's family_id
 
 ## Localization
 

@@ -49,12 +49,22 @@ The web application is deployed and functional at https://dailyrewards.vercel.ap
 - [x] Editable notes
 - [x] Delete event button
 - [x] Child view (read-only mode)
+- [x] Swipe gestures for day navigation
+- [x] Child event requests (pending/approved/rejected)
+- [x] Approve/reject buttons for parents on pending events
+- [x] Pending count badge on Home nav icon
+- [x] Children can edit points and notes on pending requests
+- [x] Realtime sync (INSERT/UPDATE/DELETE) between accounts
+- [x] Toast notifications for children on approve/reject
+- [x] Error boundary for crash recovery
 
 ### Calendar
 - [x] Month view (grid)
 - [x] Month navigation
 - [x] Day selection → navigate to home
 - [x] Event indicators on days
+- [x] Week summary view (points per day)
+- [x] Only approved events shown in calendar
 
 ### Activities Page (Admin)
 - [x] Event types list
@@ -80,12 +90,21 @@ The web application is deployed and functional at https://dailyrewards.vercel.ap
 - [x] English translations
 - [x] Applied to: Layout, HomePage, FamilyPage
 
+### Backend (Supabase) - Child Requests
+- [x] Event status column (approved/pending/rejected)
+- [x] Updated get_child_balance to count only approved events
+- [x] RLS policy: children can insert pending events
+- [x] RLS policy: children can update own pending events
+- [x] get_pending_count RPC for admin badge
+- [x] Realtime enabled on events table (REPLICA IDENTITY FULL)
+
 ### PWA
 - [x] Manifest configuration
 - [x] App icons (192x192, 512x512)
 - [x] Apple touch icon
 - [x] Favicon
 - [x] Service worker (workbox)
+- [x] Update prompt (prompt mode, not auto-update)
 
 ---
 
@@ -98,16 +117,14 @@ Nothing currently in progress.
 ## 📋 Backlog
 
 ### High Priority
+- [ ] Push-уведомления (Web Push API + Supabase Edge Functions) — уведомления в шторку даже при закрытом приложении
 - [ ] Apply translations to ActivitiesPage
 - [ ] Apply translations to CalendarPage
-- [ ] Week view in calendar
-- [ ] Swipe gestures for day navigation
 - [ ] Password reset flow
 
 ### Medium Priority
 - [ ] Loading skeletons
 - [ ] Pull-to-refresh
-- [ ] Toast notifications (success/error)
 - [ ] Empty states illustrations
 - [ ] Theme toggle (light/dark/system)
 - [ ] Edit child password
@@ -133,6 +150,7 @@ Nothing currently in progress.
 1. ~~Child login shows blank page~~ ✅ Fixed
 2. ~~Children can see siblings via RLS~~ ✅ Fixed
 3. ~~Routes /activities and /family accessible to children~~ ✅ Fixed
+4. ~~Blank page after deploy (TDZ error in production bundle)~~ ✅ Fixed — useCallback must be declared before useEffect that references it in deps
 
 ---
 
