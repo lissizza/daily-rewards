@@ -193,6 +193,11 @@ export function HomePage() {
           { event: 'INSERT', schema: 'public', table: 'events' },
           () => { refreshData(); }
         )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'events' },
+          () => { refreshData(); }
+        )
         .subscribe();
     } catch (e) {
       console.error('[HomePage] Realtime subscription failed:', e);
