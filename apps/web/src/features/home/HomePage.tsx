@@ -157,6 +157,13 @@ export function HomePage() {
     }
   }, [currentChildId, selectedDate, loadEvents, loadBalance]);
 
+  const refreshData = useCallback(() => {
+    if (currentChildId) {
+      loadEvents(currentChildId, selectedDate);
+      loadBalance(currentChildId);
+    }
+  }, [currentChildId, selectedDate, loadEvents, loadBalance]);
+
   // Realtime subscription for live updates (child sees approve/reject instantly)
   useEffect(() => {
     if (!currentChildId) return;
@@ -213,13 +220,6 @@ export function HomePage() {
     const type = eventTypes.find((t) => t.id === event.event_type_id);
     return type?.icon ?? '';
   };
-
-  const refreshData = useCallback(() => {
-    if (currentChildId) {
-      loadEvents(currentChildId, selectedDate);
-      loadBalance(currentChildId);
-    }
-  }, [currentChildId, selectedDate, loadEvents, loadBalance]);
 
   // Quick add event
   const handleQuickAdd = useCallback(
