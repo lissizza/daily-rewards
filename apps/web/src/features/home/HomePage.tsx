@@ -12,6 +12,11 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useSwipe } from '@/hooks/useSwipe';
 import type { Profile, Event, EventType } from '@/types/database';
 
+interface Toast {
+  message: string;
+  type: 'success' | 'error';
+}
+
 export function HomePage() {
   const { profile } = useAuthStore();
   const { selectedDate, selectedChildId, setSelectedChildId, goToNextDay, goToPrevDay } = useAppStore();
@@ -24,6 +29,7 @@ export function HomePage() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<Toast | null>(null);
 
   // Quick add dropdown state
   const [showIncomeDropdown, setShowIncomeDropdown] = useState(false);
@@ -150,6 +156,48 @@ export function HomePage() {
       loadBalance(currentChildId);
     }
   }, [currentChildId, selectedDate, loadEvents, loadBalance]);
+
+  // Realtime subscription for live updates (child sees approve/reject instantly)
+  useEffect(() => {
+    if (!currentChildId) return;
+
+    const channel = supabase
+      .channel('home-events')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'events' },
+        (payload) => {
+          const newEvent = payload.new as Event;
+          const oldEvent = payload.old as Partial<Event>;
+          // Show toast to child when their event status changes
+          if (!isAdmin && newEvent.child_id === currentChildId && oldEvent.status === 'pending') {
+            if (newEvent.status === 'approved') {
+              setToast({ message: t.home.requestApproved, type: 'success' });
+            } else if (newEvent.status === 'rejected') {
+              setToast({ message: t.home.requestRejected, type: 'error' });
+            }
+          }
+          refreshData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'events' },
+        () => { refreshData(); }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentChildId, isAdmin, refreshData, t]);
+
+  // Auto-hide toast
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const getEventTypeName = (event: Event): string => {
     if (event.custom_name) return event.custom_name;
@@ -320,6 +368,25 @@ export function HomePage() {
       ref={swipeRef}
       className="flex flex-1 flex-col"
     >
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed inset-x-0 top-0 z-50 p-4">
+          <div className={cn(
+            'mx-auto max-w-md rounded-lg border p-3 shadow-lg backdrop-blur-sm',
+            toast.type === 'success'
+              ? 'border-green-500/50 bg-green-50/90 dark:bg-green-950/90'
+              : 'border-destructive/50 bg-red-50/90 dark:bg-red-950/90'
+          )}>
+            <p className={cn(
+              'text-center text-sm font-medium',
+              toast.type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-destructive'
+            )}>
+              {toast.message}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background p-4">
         <div className="flex items-center justify-between">
@@ -452,6 +519,14 @@ export function HomePage() {
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </>
+                    ) : !isAdmin && event.status === 'pending' ? (
+                      <EditablePoints
+                        value={event.points}
+                        isDeduction={isDeduction}
+                        onSave={(newValue) =>
+                          handleUpdateEventPoints(event.id, newValue)
+                        }
+                      />
                     ) : (
                       <span
                         className={cn(
