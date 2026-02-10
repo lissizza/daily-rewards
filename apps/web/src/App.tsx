@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, Component } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -8,6 +9,44 @@ import { ActivitiesPage } from '@/features/activities/ActivitiesPage';
 import { FamilyPage } from '@/features/family/FamilyPage';
 import { Layout } from '@/components/Layout';
 import { UpdatePrompt } from '@/components/UpdatePrompt';
+
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[ErrorBoundary]', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 text-center">
+          <p className="text-lg font-semibold text-destructive">Something went wrong</p>
+          <pre className="max-w-md overflow-auto rounded-lg bg-muted p-4 text-left text-xs">
+            {this.state.error.message}
+          </pre>
+          <button
+            onClick={() => {
+              this.setState({ error: null });
+              window.location.reload();
+            }}
+            className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const initialize = useAuthStore((state) => state.initialize);
@@ -60,6 +99,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
 export function App() {
   return (
+    <ErrorBoundary>
     <AuthInitializer>
       <UpdatePrompt />
       <BrowserRouter>
@@ -82,5 +122,6 @@ export function App() {
         </Routes>
       </BrowserRouter>
     </AuthInitializer>
+    </ErrorBoundary>
   );
 }

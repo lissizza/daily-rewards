@@ -161,34 +161,38 @@ export function HomePage() {
   useEffect(() => {
     if (!currentChildId) return;
 
-    const channel = supabase
-      .channel('home-events')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'events' },
-        (payload) => {
-          const newEvent = payload.new as Event;
-          const oldEvent = payload.old as Partial<Event>;
-          // Show toast to child when their event status changes
-          if (!isAdmin && newEvent.child_id === currentChildId && oldEvent.status === 'pending') {
-            if (newEvent.status === 'approved') {
-              setToast({ message: t.home.requestApproved, type: 'success' });
-            } else if (newEvent.status === 'rejected') {
-              setToast({ message: t.home.requestRejected, type: 'error' });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('home-events')
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'events' },
+          (payload) => {
+            const newEvent = payload.new as Event;
+            const oldEvent = payload.old as Partial<Event>;
+            if (!isAdmin && newEvent.child_id === currentChildId && oldEvent.status === 'pending') {
+              if (newEvent.status === 'approved') {
+                setToast({ message: t.home.requestApproved, type: 'success' });
+              } else if (newEvent.status === 'rejected') {
+                setToast({ message: t.home.requestRejected, type: 'error' });
+              }
             }
+            refreshData();
           }
-          refreshData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'events' },
-        () => { refreshData(); }
-      )
-      .subscribe();
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'events' },
+          () => { refreshData(); }
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[HomePage] Realtime subscription failed:', e);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [currentChildId, isAdmin, refreshData, t]);
 

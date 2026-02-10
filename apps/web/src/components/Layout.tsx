@@ -24,17 +24,22 @@ export function Layout() {
 
     loadPendingCount();
 
-    const channel = supabase
-      .channel('pending-events')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'events' },
-        () => { loadPendingCount(); }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('pending-events')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'events' },
+          () => { loadPendingCount(); }
+        )
+        .subscribe();
+    } catch (e) {
+      console.error('[Layout] Realtime subscription failed:', e);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [isAdmin, profile, loadPendingCount]);
 
