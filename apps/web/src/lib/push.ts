@@ -15,12 +15,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export async function subscribeToPush(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    alert('[push] Not supported');
+    console.log('[push] Push not supported');
     return false;
   }
 
   if (!VAPID_PUBLIC_KEY) {
-    alert('[push] VAPID_PUBLIC_KEY not set');
+    console.error('[push] VAPID_PUBLIC_KEY not set');
     return false;
   }
 
@@ -38,15 +38,10 @@ export async function subscribeToPush(): Promise<boolean> {
     }
 
     const keys = subscription.toJSON().keys!;
-    alert('[push] Got keys: ' + JSON.stringify(keys ? Object.keys(keys) : 'null'));
 
     // Save to database (upsert by endpoint)
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert('[push] No user from auth.getUser()');
-      return false;
-    }
-    alert('[push] User: ' + user.id.slice(0, 8));
+    if (!user) return false;
 
     const { error } = await supabase
       .from('push_subscriptions')
@@ -59,15 +54,12 @@ export async function subscribeToPush(): Promise<boolean> {
 
     if (error) {
       console.error('[push] Failed to save subscription:', error);
-      alert('[push] Save error: ' + JSON.stringify(error));
       return false;
     }
 
-    alert('[push] Saved OK!');
     return true;
   } catch (err) {
     console.error('[push] Subscribe failed:', err);
-    alert('[push] Subscribe error: ' + String(err));
     return false;
   }
 }
