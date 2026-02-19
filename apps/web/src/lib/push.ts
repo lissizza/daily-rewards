@@ -54,12 +54,14 @@ export async function subscribeToPush(): Promise<boolean> {
 
     if (error) {
       console.error('[push] Failed to save subscription:', error);
+      alert('[push] Save error: ' + JSON.stringify(error));
       return false;
     }
 
     return true;
   } catch (err) {
     console.error('[push] Subscribe failed:', err);
+    alert('[push] Subscribe error: ' + String(err));
     return false;
   }
 }
