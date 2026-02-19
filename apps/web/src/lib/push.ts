@@ -46,6 +46,7 @@ export async function subscribeToPush(): Promise<boolean> {
       alert('[push] No user from auth.getUser()');
       return false;
     }
+    alert('[push] User: ' + user.id.slice(0, 8));
 
     const { error } = await supabase
       .from('push_subscriptions')
@@ -62,6 +63,7 @@ export async function subscribeToPush(): Promise<boolean> {
       return false;
     }
 
+    alert('[push] Saved OK!');
     return true;
   } catch (err) {
     console.error('[push] Subscribe failed:', err);
