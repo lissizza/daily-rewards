@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { LogOut, Plus, Pencil, Trash2, X, Globe } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, X, Globe, Bell, ChevronRight } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
 import { ErrorToast, extractErrorMessage } from '@/components/ErrorToast';
@@ -509,6 +510,20 @@ export function FamilyPage() {
             )}
           </>
         )}
+      </section>
+
+      {/* Notification settings */}
+      <section className="mb-6">
+        <NavLink
+          to="/notifications"
+          className="flex w-full items-center justify-between rounded-lg border p-3 hover:bg-accent"
+        >
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span>{t.notifications.settingsTitle}</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </NavLink>
       </section>
 
       {/* Language switcher */}
