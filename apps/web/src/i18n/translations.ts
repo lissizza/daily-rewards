@@ -107,6 +107,23 @@ export const translations = {
       hasAccount: 'Уже есть аккаунт? Войти',
       noAccount: 'Нет аккаунта? Зарегистрироваться',
     },
+    // Notifications
+    notifications: {
+      pushPromptTitle: 'Включить уведомления?',
+      pushPromptBody: 'Получайте уведомления о запросах и начислениях баллов',
+      enable: 'Включить',
+      later: 'Позже',
+      settingsTitle: 'Уведомления',
+      childRequests: 'Запросы от детей',
+      requestResults: 'Результаты запросов',
+      directChanges: 'Начисления и списания',
+      sound: 'Звук',
+      vibration: 'Вибрация',
+      androidOnly: 'Android',
+      disableAll: 'Отключить уведомления',
+      enablePush: 'Включить уведомления',
+      pushDisabled: 'Уведомления отключены в настройках браузера',
+    },
     // Common
     common: {
       loading: 'Загрузка...',
@@ -223,6 +240,23 @@ export const translations = {
       signUpButton: 'Sign up',
       hasAccount: 'Already have an account? Sign in',
       noAccount: "Don't have an account? Sign up",
+    },
+    // Notifications
+    notifications: {
+      pushPromptTitle: 'Enable notifications?',
+      pushPromptBody: 'Get notified about point requests and awards',
+      enable: 'Enable',
+      later: 'Later',
+      settingsTitle: 'Notifications',
+      childRequests: 'Child requests',
+      requestResults: 'Request results',
+      directChanges: 'Awards and deductions',
+      sound: 'Sound',
+      vibration: 'Vibration',
+      androidOnly: 'Android',
+      disableAll: 'Disable notifications',
+      enablePush: 'Enable notifications',
+      pushDisabled: 'Notifications are disabled in browser settings',
     },
     // Common
     common: {

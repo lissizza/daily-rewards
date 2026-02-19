@@ -9,6 +9,8 @@ import { ActivitiesPage } from '@/features/activities/ActivitiesPage';
 import { FamilyPage } from '@/features/family/FamilyPage';
 import { Layout } from '@/components/Layout';
 import { UpdatePrompt } from '@/components/UpdatePrompt';
+import { PushPrompt } from '@/components/PushPrompt';
+import { NotificationSettings } from '@/features/settings/NotificationSettings';
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -102,6 +104,7 @@ export function App() {
     <ErrorBoundary>
     <AuthInitializer>
       <UpdatePrompt />
+      <PushPrompt />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -117,6 +120,7 @@ export function App() {
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="activities" element={<AdminRoute><ActivitiesPage /></AdminRoute>} />
             <Route path="family" element={<AdminRoute><FamilyPage /></AdminRoute>} />
+            <Route path="notifications" element={<NotificationSettings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
