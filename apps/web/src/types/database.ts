@@ -138,6 +138,64 @@ export interface Database {
         };
       };
     };
+    push_subscriptions: {
+      Row: {
+        id: string;
+        user_id: string;
+        endpoint: string;
+        keys_p256dh: string;
+        keys_auth: string;
+        created_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        endpoint: string;
+        keys_p256dh: string;
+        keys_auth: string;
+        created_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        endpoint?: string;
+        keys_p256dh?: string;
+        keys_auth?: string;
+        created_at?: string;
+      };
+    };
+    notification_settings: {
+      Row: {
+        user_id: string;
+        child_requests: boolean;
+        request_results: boolean;
+        direct_changes: boolean;
+        sound: boolean;
+        vibration: boolean;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        user_id: string;
+        child_requests?: boolean;
+        request_results?: boolean;
+        direct_changes?: boolean;
+        sound?: boolean;
+        vibration?: boolean;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: {
+        user_id?: string;
+        child_requests?: boolean;
+        request_results?: boolean;
+        direct_changes?: boolean;
+        sound?: boolean;
+        vibration?: boolean;
+        created_at?: string;
+        updated_at?: string;
+      };
+    };
     Functions: {
       get_child_balance: {
         Args: { p_child_id: string };
