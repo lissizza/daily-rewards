@@ -19,7 +19,9 @@ export function PushPrompt() {
     }
     if (permission === 'granted') {
       // Auto re-subscribe (in case subscription expired)
-      subscribeToPush();
+      subscribeToPush().then(ok => {
+        if (!ok) alert('[push] Auto-subscribe failed — check console');
+      });
     }
   }, [user]);
 
