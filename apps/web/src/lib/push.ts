@@ -15,12 +15,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export async function subscribeToPush(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('[push] Push not supported');
+    alert('[push] Not supported');
     return false;
   }
 
   if (!VAPID_PUBLIC_KEY) {
-    console.error('[push] VAPID_PUBLIC_KEY not set');
+    alert('[push] VAPID_PUBLIC_KEY not set');
     return false;
   }
 
@@ -38,10 +38,14 @@ export async function subscribeToPush(): Promise<boolean> {
     }
 
     const keys = subscription.toJSON().keys!;
+    alert('[push] Got keys: ' + JSON.stringify(keys ? Object.keys(keys) : 'null'));
 
     // Save to database (upsert by endpoint)
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) {
+      alert('[push] No user from auth.getUser()');
+      return false;
+    }
 
     const { error } = await supabase
       .from('push_subscriptions')
