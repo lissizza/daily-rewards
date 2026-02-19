@@ -9,6 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      workbox: {
+        importScripts: ['/custom-sw.js'],
+      },
       manifest: {
         name: 'Daily Rewards',
         short_name: 'Daily Rewards',
