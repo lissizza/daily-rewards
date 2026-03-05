@@ -28,12 +28,6 @@ import { ru, enUS } from 'date-fns/locale';
 
 type ViewMode = 'month' | 'week';
 
-interface DayData {
-  date: Date;
-  events: Event[];
-  totalPoints: number;
-}
-
 export function CalendarPage() {
   const { selectedDate, setSelectedDate, selectedChildId } = useAppStore();
   const { profile } = useAuthStore();
@@ -47,6 +41,7 @@ export function CalendarPage() {
     startOfWeek(new Date(selectedDate), { weekStartsOn: 1 })
   );
   const [weekEvents, setWeekEvents] = useState<Event[]>([]);
+  const [monthPendingDays, setMonthPendingDays] = useState<Set<string>>(new Set());
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -73,6 +68,30 @@ export function CalendarPage() {
     loadEventTypes();
   }, [profile]);
 
+  // Load pending days for month view
+  useEffect(() => {
+    if (!currentChildId) return;
+
+    const loadPendingDays = async () => {
+      const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+      const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+
+      const { data } = await supabase
+        .from('events')
+        .select('date')
+        .eq('child_id', currentChildId)
+        .eq('status', 'pending')
+        .gte('date', start)
+        .lte('date', end);
+
+      if (data) {
+        setMonthPendingDays(new Set(data.map((e: { date: string }) => e.date)));
+      }
+    };
+
+    loadPendingDays();
+  }, [currentMonth, currentChildId]);
+
   // Load week events when in week view
   useEffect(() => {
     if (viewMode !== 'week' || !currentChildId) return;
@@ -85,7 +104,7 @@ export function CalendarPage() {
         .from('events')
         .select('*')
         .eq('child_id', currentChildId)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'pending'])
         .gte('date', format(currentWeekStart, 'yyyy-MM-dd'))
         .lte('date', format(weekEnd, 'yyyy-MM-dd'))
         .order('created_at');
@@ -120,9 +139,11 @@ export function CalendarPage() {
     return weekEvents.filter((event) => event.date === dateStr);
   };
 
-  // Calculate total points for a day
+  // Calculate total points for a day (approved only)
   const getTotalPointsForDay = (events: Event[]): number => {
-    return events.reduce((sum, event) => sum + event.points, 0);
+    return events
+      .filter((e) => e.status === 'approved')
+      .reduce((sum, event) => sum + event.points, 0);
   };
 
   // Get event type icon
@@ -131,12 +152,25 @@ export function CalendarPage() {
     return type?.icon ?? '';
   };
 
-  // Get unique icons for day events
+  // Get unique icons for day events (approved only)
   const getUniqueIconsForDay = (events: Event[]): string[] => {
     const icons = events
+      .filter((e) => e.status === 'approved')
       .map((event) => getEventIcon(event))
       .filter((icon) => icon !== '');
     return [...new Set(icons)];
+  };
+
+  // Count pending events for a day
+  const getPendingCountForDay = (events: Event[]): number => {
+    return events.filter((e) => e.status === 'pending').length;
+  };
+
+  // Get total pending points for a day
+  const getPendingPointsForDay = (events: Event[]): number => {
+    return events
+      .filter((e) => e.status === 'pending')
+      .reduce((sum, e) => sum + e.points, 0);
   };
 
   const handleDayClick = (date: Date) => {
@@ -256,19 +290,26 @@ export function CalendarPage() {
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isSelected = isSameDay(day, new Date(selectedDate));
               const isToday = isSameDay(day, new Date());
+              const hasPending = monthPendingDays.has(format(day, 'yyyy-MM-dd'));
 
               return (
                 <button
                   key={day.toISOString()}
                   onClick={() => handleDayClick(day)}
                   className={cn(
-                    'aspect-square rounded-md p-1 text-sm hover:bg-accent',
+                    'flex flex-col items-center justify-center rounded-md p-1 text-sm hover:bg-accent aspect-square',
                     !isCurrentMonth && 'text-muted-foreground opacity-50',
                     isSelected && 'bg-primary text-primary-foreground hover:bg-primary',
                     isToday && !isSelected && 'border border-primary'
                   )}
                 >
-                  {format(day, 'd')}
+                  <span>{format(day, 'd')}</span>
+                  {hasPending && (
+                    <span className={cn(
+                      'mt-0.5 h-1.5 w-1.5 rounded-full',
+                      isSelected ? 'bg-primary-foreground' : 'bg-yellow-500'
+                    )} />
+                  )}
                 </button>
               );
             })}
@@ -308,6 +349,8 @@ export function CalendarPage() {
               {weekViewDays.map((day, index) => {
                 const dayEvents = getEventsForDay(day);
                 const totalPoints = getTotalPointsForDay(dayEvents);
+                const pendingCount = getPendingCountForDay(dayEvents);
+                const pendingPoints = getPendingPointsForDay(dayEvents);
                 const icons = getUniqueIconsForDay(dayEvents);
                 const isSelected = isSameDay(day, new Date(selectedDate));
                 const isToday = isSameDay(day, new Date());
@@ -346,15 +389,20 @@ export function CalendarPage() {
                             {icon}
                           </span>
                         ))
-                      ) : (
+                      ) : pendingCount === 0 ? (
                         <span className="text-sm text-muted-foreground">
                           —
+                        </span>
+                      ) : null}
+                      {pendingCount > 0 && (
+                        <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-xs font-medium text-yellow-600">
+                          {pendingCount} pending
                         </span>
                       )}
                     </div>
 
                     {/* Total points */}
-                    <div className="ml-auto text-right">
+                    <div className="ml-auto flex flex-col items-end">
                       {totalPoints !== 0 ? (
                         <span
                           className={cn(
@@ -366,6 +414,11 @@ export function CalendarPage() {
                         </span>
                       ) : (
                         <span className="text-muted-foreground">0</span>
+                      )}
+                      {pendingPoints !== 0 && (
+                        <span className="text-xs text-yellow-600">
+                          {formatPoints(pendingPoints)} pending
+                        </span>
                       )}
                     </div>
                   </button>
