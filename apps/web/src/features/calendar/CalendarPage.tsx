@@ -42,6 +42,7 @@ export function CalendarPage() {
   );
   const [weekEvents, setWeekEvents] = useState<Event[]>([]);
   const [monthPendingDays, setMonthPendingDays] = useState<Set<string>>(new Set());
+  const [monthDayPoints, setMonthDayPoints] = useState<Map<string, number>>(new Map());
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -68,28 +69,40 @@ export function CalendarPage() {
     loadEventTypes();
   }, [profile]);
 
-  // Load pending days for month view
+  // Load month events (points per day + pending markers)
   useEffect(() => {
     if (!currentChildId) return;
 
-    const loadPendingDays = async () => {
+    const loadMonthData = async () => {
       const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
       const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
       const { data } = await supabase
         .from('events')
-        .select('date')
+        .select('date, points, status')
         .eq('child_id', currentChildId)
-        .eq('status', 'pending')
+        .in('status', ['approved', 'pending'])
         .gte('date', start)
         .lte('date', end);
 
       if (data) {
-        setMonthPendingDays(new Set(data.map((e: { date: string }) => e.date)));
+        const pending = new Set<string>();
+        const points = new Map<string, number>();
+
+        for (const e of data as { date: string; points: number; status: string }[]) {
+          if (e.status === 'pending') {
+            pending.add(e.date);
+          } else {
+            points.set(e.date, (points.get(e.date) ?? 0) + e.points);
+          }
+        }
+
+        setMonthPendingDays(pending);
+        setMonthDayPoints(points);
       }
     };
 
-    loadPendingDays();
+    loadMonthData();
   }, [currentMonth, currentChildId]);
 
   // Load week events when in week view
@@ -287,29 +300,42 @@ export function CalendarPage() {
           {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1">
             {monthDays.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd');
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isSelected = isSameDay(day, new Date(selectedDate));
               const isToday = isSameDay(day, new Date());
-              const hasPending = monthPendingDays.has(format(day, 'yyyy-MM-dd'));
+              const hasPending = monthPendingDays.has(dateStr);
+              const dayPoints = monthDayPoints.get(dateStr) ?? 0;
 
               return (
                 <button
                   key={day.toISOString()}
                   onClick={() => handleDayClick(day)}
                   className={cn(
-                    'flex flex-col items-center justify-center rounded-md p-1 text-sm hover:bg-accent aspect-square',
+                    'flex flex-col items-center justify-center rounded-md p-0.5 text-sm hover:bg-accent aspect-square',
                     !isCurrentMonth && 'text-muted-foreground opacity-50',
                     isSelected && 'bg-primary text-primary-foreground hover:bg-primary',
                     isToday && !isSelected && 'border border-primary'
                   )}
                 >
-                  <span>{format(day, 'd')}</span>
-                  {hasPending && (
+                  <span className="leading-tight">{format(day, 'd')}</span>
+                  {dayPoints !== 0 ? (
+                    <span className={cn(
+                      'text-[10px] leading-tight font-medium',
+                      isSelected
+                        ? 'text-primary-foreground/80'
+                        : dayPoints > 0
+                          ? 'text-green-600'
+                          : 'text-destructive'
+                    )}>
+                      {dayPoints > 0 ? '+' : ''}{dayPoints}
+                    </span>
+                  ) : hasPending ? (
                     <span className={cn(
                       'mt-0.5 h-1.5 w-1.5 rounded-full',
                       isSelected ? 'bg-primary-foreground' : 'bg-yellow-500'
                     )} />
-                  )}
+                  ) : null}
                 </button>
               );
             })}
