@@ -319,23 +319,26 @@ export function CalendarPage() {
                   )}
                 >
                   <span className="leading-tight">{format(day, 'd')}</span>
-                  {dayPoints !== 0 ? (
-                    <span className={cn(
-                      'text-[10px] leading-tight font-medium',
-                      isSelected
-                        ? 'text-primary-foreground/80'
-                        : dayPoints > 0
-                          ? 'text-green-600'
-                          : 'text-destructive'
-                    )}>
-                      {dayPoints > 0 ? '+' : ''}{dayPoints}
-                    </span>
-                  ) : hasPending ? (
-                    <span className={cn(
-                      'mt-0.5 h-1.5 w-1.5 rounded-full',
-                      isSelected ? 'bg-primary-foreground' : 'bg-yellow-500'
-                    )} />
-                  ) : null}
+                  <span className="flex items-center gap-0.5">
+                    {dayPoints !== 0 && (
+                      <span className={cn(
+                        'text-[10px] leading-tight font-medium',
+                        isSelected
+                          ? 'text-primary-foreground/80'
+                          : dayPoints > 0
+                            ? 'text-green-600'
+                            : 'text-destructive'
+                      )}>
+                        {dayPoints > 0 ? '+' : ''}{dayPoints}
+                      </span>
+                    )}
+                    {hasPending && (
+                      <span className={cn(
+                        'h-1.5 w-1.5 rounded-full shrink-0',
+                        isSelected ? 'bg-primary-foreground' : 'bg-yellow-500'
+                      )} />
+                    )}
+                  </span>
                 </button>
               );
             })}
