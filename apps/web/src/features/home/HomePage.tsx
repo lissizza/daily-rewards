@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDate, cn } from '@/lib/utils';
 import { EditablePoints } from '@/components/EditablePoints';
 import { EditableText } from '@/components/EditableText';
+import { EventRequestModal } from '@/components/EventRequestModal';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useSwipe } from '@/hooks/useSwipe';
 import type { Profile, Event, EventType } from '@/types/database';
@@ -35,6 +36,8 @@ export function HomePage() {
   const [showIncomeDropdown, setShowIncomeDropdown] = useState(false);
   const [showExpenseDropdown, setShowExpenseDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [requestModalType, setRequestModalType] = useState<EventType | null>(null);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
 
   const isAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const currentChildId = isAdmin ? selectedChildId : profile?.id;
@@ -226,10 +229,19 @@ export function HomePage() {
     return type?.icon ?? '';
   };
 
-  // Quick add event
+  // Quick add event (admin only - instant create)
   const handleQuickAdd = useCallback(
     async (eventType: EventType) => {
       if (!profile || !currentChildId) return;
+
+      // Child flow: open modal to fill in details first
+      if (!isAdmin) {
+        setShowIncomeDropdown(false);
+        setShowExpenseDropdown(false);
+        setSearchQuery('');
+        setRequestModalType(eventType);
+        return;
+      }
 
       const points = eventType.is_deduction
         ? -Math.abs(eventType.default_points)
@@ -242,7 +254,7 @@ export function HomePage() {
         note: '',
         date: selectedDate,
         created_by: profile.id,
-        status: isAdmin ? 'approved' : 'pending',
+        status: 'approved',
       });
 
       if (!error) {
@@ -252,7 +264,33 @@ export function HomePage() {
       setShowIncomeDropdown(false);
       setShowExpenseDropdown(false);
     },
-    [profile, currentChildId, selectedDate, refreshData]
+    [profile, currentChildId, selectedDate, refreshData, isAdmin]
+  );
+
+  // Child submits request via modal
+  const handleRequestSubmit = useCallback(
+    async (points: number, note: string) => {
+      if (!profile || !currentChildId || !requestModalType) return;
+
+      setRequestSubmitting(true);
+      const { error } = await supabase.from('events').insert({
+        child_id: currentChildId,
+        event_type_id: requestModalType.id,
+        points,
+        note,
+        date: selectedDate,
+        created_by: profile.id,
+        status: 'pending',
+      });
+
+      setRequestSubmitting(false);
+
+      if (!error) {
+        setRequestModalType(null);
+        refreshData();
+      }
+    },
+    [profile, currentChildId, selectedDate, requestModalType, refreshData]
   );
 
   // Update event points
@@ -703,6 +741,16 @@ export function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Child request modal */}
+      {requestModalType && (
+        <EventRequestModal
+          eventType={requestModalType}
+          onSubmit={handleRequestSubmit}
+          onClose={() => setRequestModalType(null)}
+          submitting={requestSubmitting}
+        />
+      )}
     </div>
   );
 }

@@ -26,6 +26,8 @@ export const translations = {
       requestDeduction: 'Списание',
       requestApproved: 'Запрос одобрен!',
       requestRejected: 'Запрос отклонён',
+      sendRequest: 'Отправить запрос',
+      requestNotePlaceholder: 'Опишите причину запроса...',
     },
     // Calendar page
     calendar: {
@@ -160,6 +162,8 @@ export const translations = {
       requestDeduction: 'Deduction',
       requestApproved: 'Request approved!',
       requestRejected: 'Request rejected',
+      sendRequest: 'Send request',
+      requestNotePlaceholder: 'Describe the reason...',
     },
     // Calendar page
     calendar: {
