@@ -211,6 +211,17 @@ export function HomePage() {
     };
   }, [currentChildId, isAdmin, refreshData, t]);
 
+  // Refresh data when app returns to foreground (e.g. via push notification)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [refreshData]);
+
   // Auto-hide toast
   useEffect(() => {
     if (!toast) return;
